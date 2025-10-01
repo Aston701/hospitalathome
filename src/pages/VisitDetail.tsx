@@ -525,7 +525,9 @@ const VisitDetail = () => {
         </Card>
       )}
 
-      {userRole === "nurse" && visit.nurse_id === currentUserId && (
+      {((userRole === "nurse" && visit.nurse_id === currentUserId) || 
+        userRole === "admin" || 
+        userRole === "control_room") && (
         <VitalsUpload 
           visitId={visit.id} 
           onUploadComplete={() => {
