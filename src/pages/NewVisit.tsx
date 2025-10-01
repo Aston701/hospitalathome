@@ -138,6 +138,10 @@ const NewVisit = () => {
         throw new Error("Please select date and time");
       }
 
+      if (!formData.medical_box_id) {
+        throw new Error("Please select a medical box");
+      }
+
       // Combine date and time into proper timestamps
       const [hours, minutes] = formData.scheduled_time.split(':');
       const scheduledStart = new Date(formData.scheduled_date);
@@ -152,7 +156,7 @@ const NewVisit = () => {
           scheduled_end: scheduledEnd.toISOString(),
           nurse_id: formData.nurse_id || null,
           doctor_id: formData.doctor_id || null,
-          medical_box_id: formData.medical_box_id || null,
+          medical_box_id: formData.medical_box_id,
           notes: formData.notes || null,
           status: formData.nurse_id ? "assigned" : "scheduled",
           created_by: user.id
@@ -446,14 +450,15 @@ const NewVisit = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="medical_box_id">Medical Box</Label>
+              <Label htmlFor="medical_box_id">Medical Box *</Label>
               <Select
                 value={formData.medical_box_id}
                 onValueChange={(value) => handleChange("medical_box_id", value)}
                 disabled={loading}
+                required
               >
                 <SelectTrigger id="medical_box_id">
-                  <SelectValue placeholder="Select a medical box (optional)" />
+                  <SelectValue placeholder="Select a medical box" />
                 </SelectTrigger>
                 <SelectContent>
                   {medicalBoxes.map((box) => (
