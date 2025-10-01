@@ -136,7 +136,7 @@ const VisitDetail = () => {
     setEditFormData({
       scheduled_start: visit.scheduled_start,
       scheduled_end: visit.scheduled_end,
-      nurse_id: visit.nurse_id || "",
+      nurse_id: visit.nurse_id || "unassigned",
       status: visit.status,
       notes: visit.notes || ""
     });
@@ -153,7 +153,7 @@ const VisitDetail = () => {
         .update({
           scheduled_start: editFormData.scheduled_start,
           scheduled_end: editFormData.scheduled_end,
-          nurse_id: editFormData.nurse_id || null,
+          nurse_id: editFormData.nurse_id === "unassigned" ? null : editFormData.nurse_id,
           status: editFormData.status as VisitStatus,
           notes: editFormData.notes
         })
@@ -321,7 +321,7 @@ const VisitDetail = () => {
                   <SelectValue placeholder="Select a nurse" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {nurses.map((nurse) => (
                     <SelectItem key={nurse.id} value={nurse.id}>
                       {nurse.full_name}
