@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, User, Calendar, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, User, Calendar, Clock, MapPin, Navigation, Home, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
+
+type VisitStatus = Database["public"]["Enums"]["visit_status"];
 
 const VisitDetail = () => {
   const { id } = useParams();
@@ -14,12 +17,20 @@ const VisitDetail = () => {
   const { toast } = useToast();
   const [visit, setVisit] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    fetchCurrentUser();
     if (id) {
       fetchVisit();
     }
   }, [id]);
+
+  const fetchCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUserId(user?.id || null);
+  };
 
   const fetchVisit = async () => {
     try {
@@ -47,6 +58,33 @@ const VisitDetail = () => {
     }
   };
 
+  const updateStatus = async (newStatus: VisitStatus) => {
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("visits")
+        .update({ status: newStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status Updated",
+        description: `Visit status changed to ${newStatus.replace(/_/g, " ")}`,
+      });
+
+      await fetchVisit();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "scheduled": return "bg-blue-500/10 text-blue-500 border-blue-500/20";
@@ -57,6 +95,28 @@ const VisitDetail = () => {
       case "complete": return "bg-success/10 text-success border-success/20";
       case "cancelled": return "bg-destructive/10 text-destructive border-destructive/20";
       default: return "bg-secondary text-secondary-foreground";
+    }
+  };
+
+  const canUpdateStatus = visit && currentUserId && visit.nurse_id === currentUserId;
+
+  const getNextStatuses = (currentStatus: string) => {
+    switch (currentStatus) {
+      case "scheduled":
+      case "assigned":
+        return [
+          { value: "en_route" as VisitStatus, label: "En Route", icon: Navigation },
+        ];
+      case "en_route":
+        return [
+          { value: "on_site" as VisitStatus, label: "On Site", icon: Home },
+        ];
+      case "on_site":
+        return [
+          { value: "complete" as VisitStatus, label: "Complete Visit", icon: CheckCircle },
+        ];
+      default:
+        return [];
     }
   };
 
@@ -172,6 +232,29 @@ const VisitDetail = () => {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {canUpdateStatus && getNextStatuses(visit.status).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Update Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {getNextStatuses(visit.status).map(({ value, label, icon: Icon }) => (
+                <Button
+                  key={value}
+                  onClick={() => updateStatus(value)}
+                  disabled={updating}
+                  size="lg"
+                >
+                  <Icon className="h-4 w-4 mr-2" />
+                  {label}
+                </Button>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
