@@ -13,6 +13,9 @@ const Settings = () => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(false);
+  const [visitReminders, setVisitReminders] = useState(true);
+  const [assignmentAlerts, setAssignmentAlerts] = useState(true);
 
   useEffect(() => {
     fetchProfile();
@@ -144,7 +147,10 @@ const Settings = () => {
                 <Label>Email Notifications</Label>
                 <p className="text-sm text-muted-foreground">Receive email updates about your visits</p>
               </div>
-              <Switch />
+              <Switch 
+                checked={emailNotifications}
+                onCheckedChange={setEmailNotifications}
+              />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -152,7 +158,10 @@ const Settings = () => {
                 <Label>Visit Reminders</Label>
                 <p className="text-sm text-muted-foreground">Get reminded before scheduled visits</p>
               </div>
-              <Switch defaultChecked />
+              <Switch 
+                checked={visitReminders}
+                onCheckedChange={setVisitReminders}
+              />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -160,7 +169,10 @@ const Settings = () => {
                 <Label>Assignment Alerts</Label>
                 <p className="text-sm text-muted-foreground">Notify when new visits are assigned to you</p>
               </div>
-              <Switch defaultChecked />
+              <Switch 
+                checked={assignmentAlerts}
+                onCheckedChange={setAssignmentAlerts}
+              />
             </div>
           </CardContent>
         </Card>
