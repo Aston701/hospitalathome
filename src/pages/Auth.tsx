@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Activity, Shield } from "lucide-react";
 
@@ -13,11 +12,8 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"control_room" | "nurse" | "doctor" | "admin">("control_room");
 
   useEffect(() => {
     // Check if user is already logged in
@@ -35,48 +31,22 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        // Sign up with metadata
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              role: role
-            },
-            emailRedirectTo: `${window.location.origin}/`
-          }
-        });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        if (data.user) {
-          toast({
-            title: "Account created!",
-            description: "You can now sign in with your credentials."
-          });
-          setIsSignUp(false);
-        }
-      } else {
-        // Sign in
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Welcome back!",
-          description: "Successfully signed in."
-        });
-        navigate("/");
-      }
+      toast({
+        title: "Welcome back!",
+        description: "Successfully signed in."
+      });
+      navigate("/");
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: isSignUp ? "Sign up failed" : "Sign in failed",
+        title: "Sign in failed",
         description: error.message
       });
     } finally {
@@ -97,46 +67,13 @@ const Auth = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>{isSignUp ? "Create Account" : "Sign In"}</CardTitle>
+            <CardTitle>Sign In</CardTitle>
             <CardDescription>
-              {isSignUp 
-                ? "Enter your details to create a new account" 
-                : "Enter your credentials to access the platform"}
+              Enter your credentials to access the platform
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAuth} className="space-y-4">
-              {isSignUp && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="John Doe"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={role} onValueChange={(value: any) => setRole(value)}>
-                      <SelectTrigger id="role" disabled={loading}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="control_room">Control Room</SelectItem>
-                        <SelectItem value="nurse">Nurse</SelectItem>
-                        <SelectItem value="doctor">Doctor</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -165,21 +102,8 @@ const Auth = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Processing..." : isSignUp ? "Create Account" : "Sign In"}
+                {loading ? "Processing..." : "Sign In"}
               </Button>
-
-              <div className="text-center text-sm">
-                <button
-                  type="button"
-                  onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-primary hover:underline"
-                  disabled={loading}
-                >
-                  {isSignUp 
-                    ? "Already have an account? Sign in" 
-                    : "Need an account? Sign up"}
-                </button>
-              </div>
             </form>
 
             <div className="mt-6 pt-6 border-t border-border">
