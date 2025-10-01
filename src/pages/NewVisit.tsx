@@ -147,6 +147,18 @@ const NewVisit = () => {
   // Get minimum date (today)
   const today = new Date().toISOString().split('T')[0];
 
+  // Show loading state while fetching initial data
+  if (patients.length === 0 && nurses.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+          <p className="text-muted-foreground">Loading form data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-4">
