@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, User, Shield, Stethoscope, Radio, Pencil } from "lucide-react";
+import { Plus, User, Shield, Stethoscope, Radio, Pencil, UserX, UserCheck } from "lucide-react";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -138,6 +138,31 @@ const Users = () => {
       phone: user.phone || ""
     });
     setDialogOpen(true);
+  };
+
+
+  const handleToggleActive = async (userId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_active: !currentStatus })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: currentStatus ? "User disabled" : "User enabled",
+        description: `User has been ${currentStatus ? "disabled" : "enabled"} successfully.`
+      });
+
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
   };
 
   const handleAddUser = () => {
@@ -309,6 +334,23 @@ const Users = () => {
                     >
                       <Pencil className="h-4 w-4 mr-1" />
                       Edit
+                    </Button>
+                    <Button
+                      variant={user.is_active ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => handleToggleActive(user.id, user.is_active)}
+                    >
+                      {user.is_active ? (
+                        <>
+                          <UserX className="h-4 w-4 mr-1" />
+                          Disable
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="h-4 w-4 mr-1" />
+                          Enable
+                        </>
+                      )}
                     </Button>
                     <Badge variant="outline" className={getRoleBadgeColor(user.role)}>
                       {getRoleLabel(user.role)}
