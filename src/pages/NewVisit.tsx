@@ -25,6 +25,7 @@ const NewVisit = () => {
   const [nurses, setNurses] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [medicalBoxes, setMedicalBoxes] = useState<any[]>([]);
+  const [dayVisits, setDayVisits] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
     patient_id: preSelectedPatient || "",
@@ -41,6 +42,12 @@ const NewVisit = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (formData.scheduled_date) {
+      fetchDayVisits();
+    }
+  }, [formData.scheduled_date]);
 
   const fetchData = async () => {
     try {
@@ -83,6 +90,34 @@ const NewVisit = () => {
         title: "Error",
         description: error.message
       });
+    }
+  };
+
+  const fetchDayVisits = async () => {
+    if (!formData.scheduled_date) return;
+
+    try {
+      const startOfDay = new Date(formData.scheduled_date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(formData.scheduled_date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const { data, error } = await supabase
+        .from("visits")
+        .select(`
+          *,
+          patient:patients(first_name, last_name, phone),
+          nurse:nurse_id(full_name),
+          doctor:doctor_id(full_name)
+        `)
+        .gte("scheduled_start", startOfDay.toISOString())
+        .lte("scheduled_start", endOfDay.toISOString())
+        .order("scheduled_start");
+
+      if (error) throw error;
+      setDayVisits(data || []);
+    } catch (error: any) {
+      console.error("Error fetching day visits:", error);
     }
   };
 
@@ -292,6 +327,69 @@ const NewVisit = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Schedule Assistant */}
+        {formData.scheduled_date && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Schedule Assistant
+              </CardTitle>
+              <CardDescription>
+                {dayVisits.length === 0 
+                  ? "No visits scheduled for this day yet"
+                  : `${dayVisits.length} visit${dayVisits.length !== 1 ? 's' : ''} scheduled for ${format(formData.scheduled_date, "PPP")}`
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {dayVisits.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>All time slots are available for this day</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {dayVisits.map((visit) => {
+                    const start = new Date(visit.scheduled_start);
+                    const end = new Date(visit.scheduled_end);
+                    return (
+                      <div 
+                        key={visit.id}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col items-center justify-center bg-background rounded px-3 py-2 border">
+                            <span className="text-sm font-semibold">
+                              {format(start, "HH:mm")}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {format(end, "HH:mm")}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {visit.patient?.first_name} {visit.patient?.last_name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {visit.nurse?.full_name || "Unassigned"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+                            {visit.status}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Team Assignment */}
         <Card>
