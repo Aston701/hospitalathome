@@ -169,8 +169,16 @@ const Layout = () => {
         </div>
       </aside>
 
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
-      <main className={`transition-all duration-200 ${sidebarOpen ? "lg:ml-64" : ""} pt-16 lg:pt-0`}>
+      <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen">
         <div className="p-6">
           <Outlet />
         </div>
