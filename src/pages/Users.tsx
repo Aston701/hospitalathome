@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, User, Shield, Stethoscope, Radio } from "lucide-react";
+import { Plus, User, Shield, Stethoscope, Radio, Pencil } from "lucide-react";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -18,6 +18,7 @@ const Users = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState<{
     email: string;
     password: string;
@@ -56,29 +57,58 @@ const Users = () => {
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          email: formData.email,
-          password: formData.password,
-          full_name: formData.full_name,
-          role: formData.role,
-          phone: formData.phone
-        }
-      });
+      if (editingUserId) {
+        // Update existing user
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: formData.full_name,
+            phone: formData.phone || null,
+            role: formData.role
+          })
+          .eq("id", editingUserId);
 
-      if (error) throw error;
+        if (profileError) throw profileError;
 
-      toast({
-        title: "User created",
-        description: `${formData.full_name} has been added successfully.`
-      });
+        // Update user_roles
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .update({ role: formData.role })
+          .eq("user_id", editingUserId);
+
+        if (roleError) throw roleError;
+
+        toast({
+          title: "User updated",
+          description: `${formData.full_name} has been updated successfully.`
+        });
+      } else {
+        // Create new user
+        const { data, error } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            full_name: formData.full_name,
+            role: formData.role,
+            phone: formData.phone
+          }
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "User created",
+          description: `${formData.full_name} has been added successfully.`
+        });
+      }
 
       setDialogOpen(false);
+      setEditingUserId(null);
       setFormData({
         email: "",
         password: "",
@@ -96,6 +126,30 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditUser = (user: any) => {
+    setEditingUserId(user.id);
+    setFormData({
+      email: "", // Email can't be edited
+      password: "", // Password not needed for edit
+      full_name: user.full_name,
+      role: user.role,
+      phone: user.phone || ""
+    });
+    setDialogOpen(true);
+  };
+
+  const handleAddUser = () => {
+    setEditingUserId(null);
+    setFormData({
+      email: "",
+      password: "",
+      full_name: "",
+      role: "nurse",
+      phone: ""
+    });
+    setDialogOpen(true);
   };
 
   const getRoleIcon = (role: string) => {
@@ -135,19 +189,21 @@ const Users = () => {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={handleAddUser}>
               <Plus className="h-4 w-4 mr-2" />
               Add User
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
+              <DialogTitle>{editingUserId ? "Edit User" : "Create New User"}</DialogTitle>
               <DialogDescription>
-                Add a new user to the system and assign their role.
+                {editingUserId 
+                  ? "Update user information and role."
+                  : "Add a new user to the system and assign their role."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateUser} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="full_name">Full Name *</Label>
                 <Input
@@ -157,27 +213,31 @@ const Users = () => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  required
-                  minLength={6}
-                />
-              </div>
+              {!editingUserId && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
                 <Input
@@ -214,7 +274,7 @@ const Users = () => {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  Create User
+                  {editingUserId ? "Update User" : "Create User"}
                 </Button>
               </div>
             </form>
@@ -242,6 +302,14 @@ const Users = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditUser(user)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                     <Badge variant="outline" className={getRoleBadgeColor(user.role)}>
                       {getRoleLabel(user.role)}
                     </Badge>
