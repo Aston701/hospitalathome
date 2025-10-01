@@ -109,7 +109,7 @@ const NewVisit = () => {
           patient:patients(first_name, last_name, phone),
           nurse:nurse_id(full_name),
           doctor:doctor_id(full_name),
-          medical_box:medical_box_id(label)
+          medical_boxes(label)
         `)
         .gte("scheduled_start", startOfDay.toISOString())
         .lte("scheduled_start", endOfDay.toISOString())
@@ -376,9 +376,9 @@ const NewVisit = () => {
                             <p className="text-sm text-muted-foreground">
                               {visit.nurse?.full_name || "Unassigned"}
                             </p>
-                            {visit.medical_box?.label && (
+                            {visit.medical_boxes?.label && (
                               <p className="text-xs text-muted-foreground">
-                                📦 {visit.medical_box.label}
+                                📦 {visit.medical_boxes.label}
                               </p>
                             )}
                           </div>
