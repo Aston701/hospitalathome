@@ -9,6 +9,7 @@ import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
 import PatientDetail from "./pages/PatientDetail";
 import Visits from "./pages/Visits";
+import NewVisit from "./pages/NewVisit";
 import Dispatch from "./pages/Dispatch";
 import NotFound from "./pages/NotFound";
 
@@ -26,8 +27,9 @@ const App = () => (
           <Route path="patients" element={<Patients />} />
           <Route path="patients/new" element={<NewPatient />} />
           <Route path="patients/:id" element={<PatientDetail />} />
-          <Route path="visits" element={<Visits />} />
-          <Route path="dispatch" element={<Dispatch />} />
+            <Route path="visits" element={<Visits />} />
+            <Route path="visits/new" element={<NewVisit />} />
+            <Route path="dispatch" element={<Dispatch />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
