@@ -5,9 +5,17 @@ import type { Database } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, User, Calendar, Clock, MapPin, Navigation, Home, CheckCircle } from "lucide-react";
+import { ArrowLeft, User, Calendar as CalendarIcon, Clock, MapPin, Navigation, Home, CheckCircle, Pencil } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 type VisitStatus = Database["public"]["Enums"]["visit_status"];
 
@@ -20,9 +28,19 @@ const VisitDetail = () => {
   const [updating, setUpdating] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [nurses, setNurses] = useState<any[]>([]);
+  const [editFormData, setEditFormData] = useState({
+    scheduled_start: "",
+    scheduled_end: "",
+    nurse_id: "",
+    status: "",
+    notes: ""
+  });
 
   useEffect(() => {
     fetchCurrentUser();
+    fetchNurses();
     if (id) {
       fetchVisit();
     }
@@ -40,6 +58,23 @@ const VisitDetail = () => {
         .single();
       
       setUserRole(profile?.role || null);
+    }
+  };
+
+
+  const fetchNurses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("role", "nurse")
+        .eq("is_active", true)
+        .order("full_name");
+
+      if (error) throw error;
+      setNurses(data || []);
+    } catch (error: any) {
+      console.error("Error fetching nurses:", error);
     }
   };
 
@@ -84,6 +119,54 @@ const VisitDetail = () => {
         description: `Visit status changed to ${newStatus.replace(/_/g, " ")}`,
       });
 
+      await fetchVisit();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+
+  const handleEditVisit = () => {
+    setEditFormData({
+      scheduled_start: visit.scheduled_start,
+      scheduled_end: visit.scheduled_end,
+      nurse_id: visit.nurse_id || "",
+      status: visit.status,
+      notes: visit.notes || ""
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdating(true);
+
+    try {
+      const { error } = await supabase
+        .from("visits")
+        .update({
+          scheduled_start: editFormData.scheduled_start,
+          scheduled_end: editFormData.scheduled_end,
+          nurse_id: editFormData.nurse_id || null,
+          status: editFormData.status as VisitStatus,
+          notes: editFormData.notes
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Visit Updated",
+        description: "Visit details have been updated successfully."
+      });
+
+      setEditDialogOpen(false);
       await fetchVisit();
     } catch (error: any) {
       toast({
@@ -146,7 +229,7 @@ const VisitDetail = () => {
   if (!visit) {
     return (
       <div className="text-center py-12">
-        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+        <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
         <p className="text-muted-foreground">Visit not found</p>
         <Button onClick={() => navigate("/visits")} className="mt-4">
           Back to Visits
@@ -173,10 +256,134 @@ const VisitDetail = () => {
             </p>
           </div>
         </div>
-        <Badge variant="outline" className={getStatusColor(visit.status)}>
-          {visit.status.replace(/_/g, " ")}
-        </Badge>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleEditVisit}
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit Visit
+          </Button>
+          <Badge variant="outline" className={getStatusColor(visit.status)}>
+            {visit.status.replace(/_/g, " ")}
+          </Badge>
+        </div>
       </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Visit</DialogTitle>
+            <DialogDescription>
+              Update visit scheduling and assignment details.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateVisit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="scheduled_start">Start Time *</Label>
+                <Input
+                  id="scheduled_start"
+                  type="datetime-local"
+                  value={editFormData.scheduled_start.slice(0, 16)}
+                  onChange={(e) => setEditFormData(prev => ({ 
+                    ...prev, 
+                    scheduled_start: e.target.value 
+                  }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="scheduled_end">End Time *</Label>
+                <Input
+                  id="scheduled_end"
+                  type="datetime-local"
+                  value={editFormData.scheduled_end.slice(0, 16)}
+                  onChange={(e) => setEditFormData(prev => ({ 
+                    ...prev, 
+                    scheduled_end: e.target.value 
+                  }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nurse">Assigned Nurse</Label>
+              <Select
+                value={editFormData.nurse_id}
+                onValueChange={(value) => setEditFormData(prev => ({ 
+                  ...prev, 
+                  nurse_id: value 
+                }))}
+              >
+                <SelectTrigger id="nurse">
+                  <SelectValue placeholder="Select a nurse" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Unassigned</SelectItem>
+                  {nurses.map((nurse) => (
+                    <SelectItem key={nurse.id} value={nurse.id}>
+                      {nurse.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status *</Label>
+              <Select
+                value={editFormData.status}
+                onValueChange={(value) => setEditFormData(prev => ({ 
+                  ...prev, 
+                  status: value 
+                }))}
+                required
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="assigned">Assigned</SelectItem>
+                  <SelectItem value="en_route">En Route</SelectItem>
+                  <SelectItem value="on_site">On Site</SelectItem>
+                  <SelectItem value="in_telemed">In Telemed</SelectItem>
+                  <SelectItem value="complete">Complete</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={editFormData.notes}
+                onChange={(e) => setEditFormData(prev => ({ 
+                  ...prev, 
+                  notes: e.target.value 
+                }))}
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updating}>
+                Update Visit
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>
@@ -185,7 +392,7 @@ const VisitDetail = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
+              <CalendarIcon className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Date</p>
                 <p className="font-medium">
