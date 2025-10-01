@@ -50,15 +50,7 @@ serve(async (req) => {
 
     if (profileError) throw profileError
 
-    // Add role to user_roles
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: authData.user.id,
-        role
-      })
-
-    if (roleError) throw roleError
+    // Note: user_roles is automatically created by the handle_new_user() trigger
 
     return new Response(
       JSON.stringify({ user: authData.user }),
