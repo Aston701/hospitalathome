@@ -278,10 +278,9 @@ const NewVisit = () => {
                   disabled={loading}
                 >
                   <SelectTrigger id="nurse_id">
-                    <SelectValue placeholder="Select a nurse" />
+                    <SelectValue placeholder="Select a nurse (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
                     {nurses.map((nurse) => (
                       <SelectItem key={nurse.id} value={nurse.id}>
                         {nurse.full_name}
@@ -298,10 +297,9 @@ const NewVisit = () => {
                   disabled={loading}
                 >
                   <SelectTrigger id="doctor_id">
-                    <SelectValue placeholder="Select a doctor" />
+                    <SelectValue placeholder="Select a doctor (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
                     {doctors.map((doctor) => (
                       <SelectItem key={doctor.id} value={doctor.id}>
                         {doctor.full_name}
@@ -320,10 +318,9 @@ const NewVisit = () => {
                 disabled={loading}
               >
                 <SelectTrigger id="medical_box_id">
-                  <SelectValue placeholder="Select a medical box" />
+                  <SelectValue placeholder="Select a medical box (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
                   {medicalBoxes.map((box) => (
                     <SelectItem key={box.id} value={box.id}>
                       {box.label}
