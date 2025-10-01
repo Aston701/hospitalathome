@@ -56,7 +56,7 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
       console.log("Visit ID:", visitId);
 
       // Upload photo if provided
-      let photoUrl = null;
+      let photoPath = null;
       if (photo) {
         console.log("Uploading photo...");
         const fileExt = photo.name.split('.').pop();
@@ -70,12 +70,9 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           throw uploadError;
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('visit-photos')
-          .getPublicUrl(fileName);
-        
-        photoUrl = publicUrl;
-        console.log("Photo uploaded successfully:", photoUrl);
+        // Store the file path with bucket prefix for later signed URL generation
+        photoPath = `visit-photos/${fileName}`;
+        console.log("Photo uploaded successfully, path:", photoPath);
       }
 
       // Insert vitals readings
@@ -91,7 +88,7 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           raw_payload: {
             systolic: parseFloat(vitalsData.blood_pressure_systolic),
             diastolic: parseFloat(vitalsData.blood_pressure_diastolic),
-            photo_url: photoUrl
+            photo_url: photoPath
           }
         });
       }
@@ -103,7 +100,7 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           value_number: parseFloat(vitalsData.heart_rate),
           unit: 'bpm',
           captured_by_user_id: user.id,
-          raw_payload: { photo_url: photoUrl }
+          raw_payload: { photo_url: photoPath }
         });
       }
 
@@ -114,7 +111,7 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           value_number: parseFloat(vitalsData.temperature),
           unit: '°C',
           captured_by_user_id: user.id,
-          raw_payload: { photo_url: photoUrl }
+          raw_payload: { photo_url: photoPath }
         });
       }
 
@@ -125,7 +122,7 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           value_number: parseFloat(vitalsData.oxygen_saturation),
           unit: '%',
           captured_by_user_id: user.id,
-          raw_payload: { photo_url: photoUrl }
+          raw_payload: { photo_url: photoPath }
         });
       }
 
@@ -136,7 +133,7 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           value_number: parseFloat(vitalsData.respiratory_rate),
           unit: 'breaths/min',
           captured_by_user_id: user.id,
-          raw_payload: { photo_url: photoUrl }
+          raw_payload: { photo_url: photoPath }
         });
       }
 

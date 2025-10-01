@@ -11,6 +11,7 @@ interface VitalsDisplayProps {
 const VitalsDisplay = ({ visitId }: VitalsDisplayProps) => {
   const [vitals, setVitals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchVitals();
@@ -29,6 +30,26 @@ const VitalsDisplay = ({ visitId }: VitalsDisplayProps) => {
 
       if (error) throw error;
       setVitals(data || []);
+
+      // Generate signed URLs for photos
+      const urls: Record<string, string> = {};
+      for (const vital of data || []) {
+        const payload = vital.raw_payload as any;
+        if (payload?.photo_url) {
+          // Extract the file path from the full URL
+          const urlPath = payload.photo_url.split('/visit-photos/')[1];
+          if (urlPath) {
+            const { data: signedData } = await supabase.storage
+              .from('visit-photos')
+              .createSignedUrl(urlPath, 3600); // Valid for 1 hour
+            
+            if (signedData?.signedUrl) {
+              urls[vital.id] = signedData.signedUrl;
+            }
+          }
+        }
+      }
+      setPhotoUrls(urls);
     } catch (error) {
       console.error("Error fetching vitals:", error);
     } finally {
@@ -53,8 +74,9 @@ const VitalsDisplay = ({ visitId }: VitalsDisplayProps) => {
   };
 
   const formatVitalValue = (vital: any) => {
+    const payload = vital.raw_payload as any;
     if (vital.type === "blood_pressure") {
-      return `${vital.raw_payload?.systolic || vital.value_number}/${vital.raw_payload?.diastolic || "-"} ${vital.unit}`;
+      return `${payload?.systolic || vital.value_number}/${payload?.diastolic || "-"} ${vital.unit}`;
     }
     return `${vital.value_number} ${vital.unit}`;
   };
@@ -106,9 +128,9 @@ const VitalsDisplay = ({ visitId }: VitalsDisplayProps) => {
                         {format(new Date(vital.timestamp), "dd MMM yyyy HH:mm")}
                       </p>
                     </div>
-                    {vital.raw_payload?.photo_url && (
+                    {photoUrls[vital.id] && (
                       <a
-                        href={vital.raw_payload.photo_url}
+                        href={photoUrls[vital.id]}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-primary hover:underline"
