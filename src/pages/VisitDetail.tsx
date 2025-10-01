@@ -17,6 +17,8 @@ import { ArrowLeft, User, Calendar as CalendarIcon, Clock, MapPin, Navigation, H
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import VisitTimeline from "@/components/VisitTimeline";
+import VitalsUpload from "@/components/VitalsUpload";
+import VitalsDisplay from "@/components/VitalsDisplay";
 
 type VisitStatus = Database["public"]["Enums"]["visit_status"];
 
@@ -505,6 +507,18 @@ const VisitDetail = () => {
           </CardContent>
         </Card>
       )}
+
+      {userRole === "nurse" && visit.nurse_id === currentUserId && (
+        <VitalsUpload 
+          visitId={visit.id} 
+          onUploadComplete={() => {
+            // Refresh the page data after upload
+            fetchVisit();
+          }} 
+        />
+      )}
+
+      <VitalsDisplay visitId={visit.id} />
 
       {visit.notes && (
         <Card>
