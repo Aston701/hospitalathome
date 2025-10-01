@@ -14,6 +14,7 @@ import VisitDetail from "./pages/VisitDetail";
 import Dispatch from "./pages/Dispatch";
 import Prescriptions from "./pages/Prescriptions";
 import Users from "./pages/Users";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="dispatch" element={<Dispatch />} />
             <Route path="prescriptions" element={<Prescriptions />} />
             <Route path="users" element={<Users />} />
+            <Route path="settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
