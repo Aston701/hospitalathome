@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, User, Calendar as CalendarIcon, Clock, MapPin, Navigation, Home, CheckCircle, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import VisitTimeline from "@/components/VisitTimeline";
 
 type VisitStatus = Database["public"]["Enums"]["visit_status"];
 
@@ -30,6 +31,7 @@ const VisitDetail = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [nurses, setNurses] = useState<any[]>([]);
+  const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
   const [editFormData, setEditFormData] = useState({
     scheduled_start: "",
     scheduled_end: "",
@@ -43,6 +45,7 @@ const VisitDetail = () => {
     fetchNurses();
     if (id) {
       fetchVisit();
+      fetchTimelineEvents();
     }
   }, [id]);
 
@@ -104,6 +107,24 @@ const VisitDetail = () => {
     }
   };
 
+  const fetchTimelineEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("visit_events")
+        .select(`
+          *,
+          user:created_by(full_name)
+        `)
+        .eq("visit_id", id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setTimelineEvents(data || []);
+    } catch (error: any) {
+      console.error("Error fetching timeline:", error);
+    }
+  };
+
   const updateStatus = async (newStatus: VisitStatus) => {
     setUpdating(true);
     try {
@@ -120,6 +141,7 @@ const VisitDetail = () => {
       });
 
       await fetchVisit();
+      await fetchTimelineEvents();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -168,6 +190,7 @@ const VisitDetail = () => {
 
       setEditDialogOpen(false);
       await fetchVisit();
+      await fetchTimelineEvents();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -493,6 +516,8 @@ const VisitDetail = () => {
           </CardContent>
         </Card>
       )}
+
+      <VisitTimeline events={timelineEvents} />
     </div>
   );
 };
