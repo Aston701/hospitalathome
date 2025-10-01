@@ -16,17 +16,17 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <Toaster />
-    <Sonner />
     <BrowserRouter>
+      <Toaster />
+      <Sonner />
       <Routes>
         <Route path="/auth" element={<Auth />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
-            <Route path="patients" element={<Patients />} />
-            <Route path="patients/new" element={<NewPatient />} />
-            <Route path="patients/:id" element={<PatientDetail />} />
-            <Route path="visits" element={<Visits />} />
+          <Route path="patients" element={<Patients />} />
+          <Route path="patients/new" element={<NewPatient />} />
+          <Route path="patients/:id" element={<PatientDetail />} />
+          <Route path="visits" element={<Visits />} />
           <Route path="dispatch" element={<Dispatch />} />
           <Route path="*" element={<NotFound />} />
         </Route>
