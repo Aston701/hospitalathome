@@ -108,7 +108,7 @@ const NewVisit = () => {
           doctor_id: formData.doctor_id || null,
           medical_box_id: formData.medical_box_id || null,
           notes: formData.notes || null,
-          status: "scheduled",
+          status: formData.nurse_id ? "assigned" : "scheduled",
           created_by: user.id
         }])
         .select()
