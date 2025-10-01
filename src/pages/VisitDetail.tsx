@@ -19,6 +19,7 @@ const VisitDetail = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -30,6 +31,16 @@ const VisitDetail = () => {
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUserId(user?.id || null);
+    
+    if (user?.id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      
+      setUserRole(profile?.role || null);
+    }
   };
 
   const fetchVisit = async () => {
@@ -98,7 +109,11 @@ const VisitDetail = () => {
     }
   };
 
-  const canUpdateStatus = visit && currentUserId && visit.nurse_id === currentUserId;
+  const canUpdateStatus = visit && currentUserId && (
+    visit.nurse_id === currentUserId || 
+    userRole === "admin" || 
+    userRole === "control_room"
+  );
 
   const getNextStatuses = (currentStatus: string) => {
     switch (currentStatus) {
