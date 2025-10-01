@@ -7,8 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Calendar } from "lucide-react";
+import { ArrowLeft, Save, Calendar, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const NewVisit = () => {
   const navigate = useNavigate();
@@ -24,7 +28,7 @@ const NewVisit = () => {
   
   const [formData, setFormData] = useState({
     patient_id: preSelectedPatient || "",
-    scheduled_date: "",
+    scheduled_date: undefined as Date | undefined,
     scheduled_time: "",
     duration: "60",
     nurse_id: "",
@@ -82,7 +86,7 @@ const NewVisit = () => {
     }
   };
 
-  const handleChange = (name: string, value: string) => {
+  const handleChange = (name: string, value: string | Date | undefined) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -94,8 +98,14 @@ const NewVisit = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      if (!formData.scheduled_date || !formData.scheduled_time) {
+        throw new Error("Please select date and time");
+      }
+
       // Combine date and time into proper timestamps
-      const scheduledStart = new Date(`${formData.scheduled_date}T${formData.scheduled_time}`);
+      const [hours, minutes] = formData.scheduled_time.split(':');
+      const scheduledStart = new Date(formData.scheduled_date);
+      scheduledStart.setHours(parseInt(hours), parseInt(minutes), 0, 0);
       const scheduledEnd = new Date(scheduledStart.getTime() + parseInt(formData.duration) * 60000);
 
       const { data, error } = await supabase
@@ -145,7 +155,8 @@ const NewVisit = () => {
   };
 
   // Get minimum date (today)
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   // Show loading state while fetching initial data
   if (patients.length === 0 && nurses.length === 0) {
@@ -218,27 +229,47 @@ const NewVisit = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="scheduled_date">Date *</Label>
-                <Input
-                  id="scheduled_date"
-                  type="date"
-                  min={today}
-                  value={formData.scheduled_date}
-                  onChange={(e) => handleChange("scheduled_date", e.target.value)}
-                  required
-                  disabled={loading}
-                />
+                <Label>Date *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.scheduled_date && "text-muted-foreground"
+                      )}
+                      disabled={loading}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {formData.scheduled_date ? format(formData.scheduled_date, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={formData.scheduled_date}
+                      onSelect={(date) => handleChange("scheduled_date", date)}
+                      disabled={(date) => date < today}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="scheduled_time">Time *</Label>
-                <Input
-                  id="scheduled_time"
-                  type="time"
-                  value={formData.scheduled_time}
-                  onChange={(e) => handleChange("scheduled_time", e.target.value)}
-                  required
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="scheduled_time"
+                    type="time"
+                    className="pl-10"
+                    value={formData.scheduled_time}
+                    onChange={(e) => handleChange("scheduled_time", e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="duration">Duration (minutes) *</Label>
