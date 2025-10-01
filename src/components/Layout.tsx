@@ -74,6 +74,7 @@ const Layout = () => {
     { icon: Calendar, label: "Visits", path: "/visits" },
     { icon: MapPin, label: "Dispatch", path: "/dispatch" },
     { icon: FileText, label: "Prescriptions", path: "/prescriptions" },
+    ...(profile?.role === "admin" ? [{ icon: Settings, label: "Users", path: "/users" }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
