@@ -108,7 +108,8 @@ const NewVisit = () => {
           *,
           patient:patients(first_name, last_name, phone),
           nurse:nurse_id(full_name),
-          doctor:doctor_id(full_name)
+          doctor:doctor_id(full_name),
+          medical_box:medical_boxes(label)
         `)
         .gte("scheduled_start", startOfDay.toISOString())
         .lte("scheduled_start", endOfDay.toISOString())
@@ -368,13 +369,18 @@ const NewVisit = () => {
                               {format(end, "HH:mm")}
                             </span>
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium">
                               {visit.patient?.first_name} {visit.patient?.last_name}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {visit.nurse?.full_name || "Unassigned"}
                             </p>
+                            {visit.medical_box?.label && (
+                              <p className="text-xs text-muted-foreground">
+                                📦 {visit.medical_box.label}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="text-right">
