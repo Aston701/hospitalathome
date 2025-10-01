@@ -29,18 +29,48 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    checkAccessAndFetchData();
   }, []);
+
+  const checkAccessAndFetchData = async () => {
+    // Get current user and check role
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    // Redirect nurses to their visits page
+    if (profile?.role === "nurse") {
+      navigate("/visits");
+      return;
+    }
+
+    fetchDashboardData();
+  };
 
   const fetchDashboardData = async () => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // Fetch today's visits
-      const { data: visits } = await supabase
+      // Build query based on role
+      let query = supabase
         .from("visits")
         .select(`
           *,
@@ -51,6 +81,13 @@ const Dashboard = () => {
         .gte("scheduled_start", today.toISOString())
         .lt("scheduled_start", tomorrow.toISOString())
         .order("scheduled_start", { ascending: true });
+
+      // Nurses only see their assigned visits
+      if (profile?.role === "nurse") {
+        query = query.eq("nurse_id", user.id);
+      }
+
+      const { data: visits } = await query;
 
       if (visits) {
         setTodayVisits(visits);

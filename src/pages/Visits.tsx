@@ -22,7 +22,18 @@ const Visits = () => {
 
   const fetchVisits = async () => {
     try {
-      const { data, error } = await supabase
+      // Get current user and role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      // Build query based on role
+      let query = supabase
         .from("visits")
         .select(`
           *,
@@ -31,6 +42,13 @@ const Visits = () => {
           doctor:doctor_id(full_name)
         `)
         .order("scheduled_start", { ascending: false });
+
+      // Nurses only see their assigned visits
+      if (profile?.role === "nurse") {
+        query = query.eq("nurse_id", user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setVisits(data || []);
@@ -73,15 +91,11 @@ const Visits = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Visits</h1>
+          <h1 className="text-3xl font-bold mb-2">My Visits</h1>
           <p className="text-muted-foreground">
-            Manage and track all patient visits
+            View and manage your assigned visits
           </p>
         </div>
-        <Button onClick={() => navigate("/visits/new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Visit
-        </Button>
       </div>
 
       {/* Filters */}

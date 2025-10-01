@@ -68,14 +68,18 @@ const Layout = () => {
     navigate("/auth");
   };
 
-  const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-    { icon: Users, label: "Patients", path: "/patients" },
-    { icon: Calendar, label: "Visits", path: "/visits" },
-    { icon: MapPin, label: "Dispatch", path: "/dispatch" },
-    { icon: FileText, label: "Prescriptions", path: "/prescriptions" },
-    ...(profile?.role === "admin" ? [{ icon: Settings, label: "Users", path: "/users" }] : []),
-  ];
+  const navItems = profile?.role === "nurse" 
+    ? [
+        { icon: Calendar, label: "My Visits", path: "/visits" },
+      ]
+    : [
+        { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+        { icon: Users, label: "Patients", path: "/patients" },
+        { icon: Calendar, label: "Visits", path: "/visits" },
+        { icon: MapPin, label: "Dispatch", path: "/dispatch" },
+        { icon: FileText, label: "Prescriptions", path: "/prescriptions" },
+        ...(profile?.role === "admin" ? [{ icon: Settings, label: "Users", path: "/users" }] : []),
+      ];
 
   const isActive = (path: string) => location.pathname === path;
 

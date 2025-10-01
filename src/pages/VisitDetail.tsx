@@ -257,13 +257,15 @@ const VisitDetail = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleEditVisit}
-          >
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit Visit
-          </Button>
+          {userRole !== "nurse" && (
+            <Button
+              variant="outline"
+              onClick={handleEditVisit}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Visit
+            </Button>
+          )}
           <Badge variant="outline" className={getStatusColor(visit.status)}>
             {visit.status.replace(/_/g, " ")}
           </Badge>

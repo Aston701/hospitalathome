@@ -31,18 +31,31 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) throw error;
 
+      // Get user role to redirect appropriately
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
       toast({
         title: "Welcome back!",
         description: "Successfully signed in."
       });
-      navigate("/");
+
+      // Redirect based on role
+      if (profile?.role === "nurse") {
+        navigate("/visits");
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
