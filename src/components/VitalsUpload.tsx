@@ -52,22 +52,30 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      console.log("User ID:", user.id);
+      console.log("Visit ID:", visitId);
+
       // Upload photo if provided
       let photoUrl = null;
       if (photo) {
+        console.log("Uploading photo...");
         const fileExt = photo.name.split('.').pop();
         const fileName = `${visitId}/${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('visit-photos')
           .upload(fileName, photo);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Photo upload error:", uploadError);
+          throw uploadError;
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('visit-photos')
           .getPublicUrl(fileName);
         
         photoUrl = publicUrl;
+        console.log("Photo uploaded successfully:", photoUrl);
       }
 
       // Insert vitals readings
@@ -132,12 +140,17 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
         });
       }
 
+      console.log("Vitals to insert:", vitalsToInsert);
+
       if (vitalsToInsert.length > 0) {
         const { error: vitalsError } = await supabase
           .from('vitals_readings')
           .insert(vitalsToInsert);
 
-        if (vitalsError) throw vitalsError;
+        if (vitalsError) {
+          console.error("Vitals insert error:", vitalsError);
+          throw vitalsError;
+        }
       }
 
       toast({
@@ -158,10 +171,11 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
       setPhotoPreview(null);
       onUploadComplete();
     } catch (error: any) {
+      console.error("Full error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to upload vitals",
       });
     } finally {
       setUploading(false);
