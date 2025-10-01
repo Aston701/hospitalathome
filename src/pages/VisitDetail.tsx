@@ -113,15 +113,32 @@ const VisitDetail = () => {
     try {
       const { data, error } = await supabase
         .from("visit_events")
-        .select(`
-          *,
-          user:created_by(full_name)
-        `)
+        .select("*, created_by")
         .eq("visit_id", id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTimelineEvents(data || []);
+      
+      // Fetch user details for each event
+      const eventsWithUser = await Promise.all(
+        (data || []).map(async (event) => {
+          if (event.created_by) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("id", event.created_by)
+              .single();
+            
+            return {
+              ...event,
+              user: profile || null
+            };
+          }
+          return { ...event, user: null };
+        })
+      );
+      
+      setTimelineEvents(eventsWithUser);
     } catch (error: any) {
       console.error("Error fetching timeline:", error);
     }
