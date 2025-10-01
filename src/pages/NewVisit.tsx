@@ -109,7 +109,7 @@ const NewVisit = () => {
           patient:patients(first_name, last_name, phone),
           nurse:nurse_id(full_name),
           doctor:doctor_id(full_name),
-          medical_box:medical_boxes(label)
+          medical_box:medical_box_id(label)
         `)
         .gte("scheduled_start", startOfDay.toISOString())
         .lte("scheduled_start", endOfDay.toISOString())
