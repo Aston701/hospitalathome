@@ -893,33 +893,33 @@ const NewVisit = () => {
             <div className="relative">
               <Textarea
                 readOnly
-                value={`NEW HOSPITAL AT HOME VISIT
+                value={`*NEW HOSPITAL AT HOME VISIT*
 
-Patient Name & Surname: ${selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Not selected'}
+*Patient Name & Surname:* ${selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Not selected'}
 
-Patient Contact Number: ${selectedPatient?.phone || 'Not available'}
+*Patient Contact Number:* ${selectedPatient?.phone || 'Not available'}
 
-Location of visit: ${formData.useProfileAddress 
+*Location of visit:* ${formData.useProfileAddress 
   ? (selectedPatient 
       ? `${selectedPatient.address_line1 || ''}${selectedPatient.address_line2 ? ', ' + selectedPatient.address_line2 : ''}, ${selectedPatient.suburb || ''}, ${selectedPatient.city || ''}, ${selectedPatient.province || ''} ${selectedPatient.postal_code || ''}`.trim()
       : 'Not available')
   : `${formData.alternateAddress.address_line1 || ''}${formData.alternateAddress.address_line2 ? ', ' + formData.alternateAddress.address_line2 : ''}, ${formData.alternateAddress.suburb || ''}, ${formData.alternateAddress.city || ''}, ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim() || 'Not specified'}
 
-Appointment Date: ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
+*Appointment Date:* ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
 
-Appointment Time: ${formData.scheduled_time || 'Not selected'}
+*Appointment Time:* ${formData.scheduled_time || 'Not selected'}
 
-Medical Information: ${selectedPatient?.conditions?.join(', ') || 'None recorded'}
+*Medical Information:* ${selectedPatient?.conditions?.join(', ') || 'None recorded'}
 
-Allergies: ${selectedPatient?.allergies?.join(', ') || 'None recorded'}
+*Allergies:* ${selectedPatient?.allergies?.join(', ') || 'None recorded'}
 
-Assigned Nurse: ${nurses.find(n => n.id === formData.nurse_id)?.full_name || 'Not assigned'}
+*Assigned Nurse:* ${nurses.find(n => n.id === formData.nurse_id)?.full_name || 'Not assigned'}
 
-Assigned Doctor: ${doctors.find(d => d.id === formData.doctor_id)?.full_name || 'Not assigned'}
+*Assigned Doctor:* ${doctors.find(d => d.id === formData.doctor_id)?.full_name || 'Not assigned'}
 
-Assigned Medical Box: ${medicalBoxes.find(mb => mb.id === formData.medical_box_id)?.label || 'Not assigned'}
+*Assigned Medical Box:* ${medicalBoxes.find(mb => mb.id === formData.medical_box_id)?.label || 'Not assigned'}
 
-Additional Notes: ${formData.notes || 'None'}`}
+*Additional Notes:* ${formData.notes || 'None'}`}
                 rows={22}
                 className="resize-none font-mono text-sm"
               />
@@ -929,33 +929,33 @@ Additional Notes: ${formData.notes || 'None'}`}
                 variant="outline"
                 className="absolute top-2 right-2"
                 onClick={() => {
-                  const message = `NEW HOSPITAL AT HOME VISIT
+                  const message = `*NEW HOSPITAL AT HOME VISIT*
 
-Patient Name & Surname: ${selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Not selected'}
+*Patient Name & Surname:* ${selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Not selected'}
 
-Patient Contact Number: ${selectedPatient?.phone || 'Not available'}
+*Patient Contact Number:* ${selectedPatient?.phone || 'Not available'}
 
-Location of visit: ${formData.useProfileAddress 
+*Location of visit:* ${formData.useProfileAddress 
   ? (selectedPatient 
       ? `${selectedPatient.address_line1 || ''}${selectedPatient.address_line2 ? ', ' + selectedPatient.address_line2 : ''}, ${selectedPatient.suburb || ''}, ${selectedPatient.city || ''}, ${selectedPatient.province || ''} ${selectedPatient.postal_code || ''}`.trim()
       : 'Not available')
   : `${formData.alternateAddress.address_line1 || ''}${formData.alternateAddress.address_line2 ? ', ' + formData.alternateAddress.address_line2 : ''}, ${formData.alternateAddress.suburb || ''}, ${formData.alternateAddress.city || ''}, ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim() || 'Not specified'}
 
-Appointment Date: ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
+*Appointment Date:* ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
 
-Appointment Time: ${formData.scheduled_time || 'Not selected'}
+*Appointment Time:* ${formData.scheduled_time || 'Not selected'}
 
-Medical Information: ${selectedPatient?.conditions?.join(', ') || 'None recorded'}
+*Medical Information:* ${selectedPatient?.conditions?.join(', ') || 'None recorded'}
 
-Allergies: ${selectedPatient?.allergies?.join(', ') || 'None recorded'}
+*Allergies:* ${selectedPatient?.allergies?.join(', ') || 'None recorded'}
 
-Assigned Nurse: ${nurses.find(n => n.id === formData.nurse_id)?.full_name || 'Not assigned'}
+*Assigned Nurse:* ${nurses.find(n => n.id === formData.nurse_id)?.full_name || 'Not assigned'}
 
-Assigned Doctor: ${doctors.find(d => d.id === formData.doctor_id)?.full_name || 'Not assigned'}
+*Assigned Doctor:* ${doctors.find(d => d.id === formData.doctor_id)?.full_name || 'Not assigned'}
 
-Assigned Medical Box: ${medicalBoxes.find(mb => mb.id === formData.medical_box_id)?.label || 'Not assigned'}
+*Assigned Medical Box:* ${medicalBoxes.find(mb => mb.id === formData.medical_box_id)?.label || 'Not assigned'}
 
-Additional Notes: ${formData.notes || 'None'}`;
+*Additional Notes:* ${formData.notes || 'None'}`;
                   navigator.clipboard.writeText(message);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
