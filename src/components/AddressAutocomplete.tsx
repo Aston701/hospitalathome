@@ -37,14 +37,8 @@ export const AddressAutocomplete = ({ onAddressSelect, value, disabled }: Addres
     }
 
     // Load Google Maps script
-    // IMPORTANT: Replace 'YOUR_API_KEY_HERE' with your actual Google Places API key
-    // Get your key from: https://console.cloud.google.com/google/maps-apis/credentials
-    const apiKey = "AIzaSyCAEP4G0YqP7eoCHIORrSw6Ag1o6rfrM84"; // Replace this with your actual API key
-    
-    if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
-      console.error("Google Places API key not configured");
-      return;
-    }
+    // Google Places API key
+    const apiKey = "AIzaSyCAEP4G0YqP7eoCHIORrSw6Ag1o6rfrM84";
     
     const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
