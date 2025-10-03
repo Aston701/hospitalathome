@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Save, Calendar, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const NewVisit = () => {
   const navigate = useNavigate();
@@ -38,7 +39,16 @@ const NewVisit = () => {
     doctor_id: "",
     medical_box_id: "",
     priority: "routine" as "routine" | "urgent" | "emergency",
-    notes: ""
+    notes: "",
+    useProfileAddress: true,
+    alternateAddress: {
+      address_line1: "",
+      address_line2: "",
+      suburb: "",
+      city: "",
+      province: "",
+      postal_code: ""
+    }
   });
 
   useEffect(() => {
@@ -178,7 +188,7 @@ const NewVisit = () => {
     }
   };
 
-  const handleChange = (name: string, value: string | Date | undefined) => {
+  const handleChange = (name: string, value: any) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -204,6 +214,27 @@ const NewVisit = () => {
       scheduledStart.setHours(parseInt(hours), parseInt(minutes), 0, 0);
       const scheduledEnd = new Date(scheduledStart.getTime() + parseInt(formData.duration) * 60000);
 
+      // Prepare location snapshot
+      let locationSnapshot = {};
+      if (formData.useProfileAddress && selectedPatient) {
+        locationSnapshot = {
+          address_line1: selectedPatient.address_line1,
+          address_line2: selectedPatient.address_line2,
+          suburb: selectedPatient.suburb,
+          city: selectedPatient.city,
+          province: selectedPatient.province,
+          postal_code: selectedPatient.postal_code,
+          geo_lat: selectedPatient.geo_lat,
+          geo_lng: selectedPatient.geo_lng,
+          source: "profile"
+        };
+      } else {
+        locationSnapshot = {
+          ...formData.alternateAddress,
+          source: "alternate"
+        };
+      }
+
       const { data, error } = await supabase
         .from("visits")
         .insert([{
@@ -214,6 +245,7 @@ const NewVisit = () => {
           doctor_id: formData.doctor_id || null,
           medical_box_id: formData.medical_box_id,
           notes: formData.notes || null,
+          location_snapshot: locationSnapshot,
           status: formData.nurse_id ? "assigned" : "scheduled",
           created_by: user.id
         }])
@@ -463,6 +495,132 @@ const NewVisit = () => {
                         value={selectedPatient.city || ''}
                         onChange={(e) => setSelectedPatient({ ...selectedPatient, city: e.target.value })}
                         onBlur={(e) => updatePatientField('city', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Visit Location */}
+        {formData.patient_id && selectedPatient && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Visit Location
+              </CardTitle>
+              <CardDescription>Choose where the visit will take place</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="useProfileAddress"
+                  checked={formData.useProfileAddress}
+                  onCheckedChange={(checked) => 
+                    handleChange("useProfileAddress", checked as boolean)
+                  }
+                />
+                <label
+                  htmlFor="useProfileAddress"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Use patient's profile address
+                </label>
+              </div>
+
+              {formData.useProfileAddress ? (
+                <div className="p-4 bg-muted rounded-lg space-y-1">
+                  <p className="font-medium">Patient Address:</p>
+                  <p className="text-sm">{selectedPatient.address_line1 || 'No address line 1'}</p>
+                  {selectedPatient.address_line2 && (
+                    <p className="text-sm">{selectedPatient.address_line2}</p>
+                  )}
+                  <p className="text-sm">
+                    {selectedPatient.suburb && `${selectedPatient.suburb}, `}
+                    {selectedPatient.city || 'No city'}
+                  </p>
+                  <p className="text-sm">
+                    {selectedPatient.province && `${selectedPatient.province}, `}
+                    {selectedPatient.postal_code || 'No postal code'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <p className="text-sm font-medium">Alternate Address</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="alt_address_line1">Address Line 1 *</Label>
+                    <Input
+                      id="alt_address_line1"
+                      value={formData.alternateAddress.address_line1}
+                      onChange={(e) => handleChange("alternateAddress", {
+                        ...formData.alternateAddress,
+                        address_line1: e.target.value
+                      })}
+                      required={!formData.useProfileAddress}
+                      placeholder="Street address"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="alt_address_line2">Address Line 2</Label>
+                    <Input
+                      id="alt_address_line2"
+                      value={formData.alternateAddress.address_line2}
+                      onChange={(e) => handleChange("alternateAddress", {
+                        ...formData.alternateAddress,
+                        address_line2: e.target.value
+                      })}
+                      placeholder="Apartment, suite, etc."
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="alt_suburb">Suburb</Label>
+                      <Input
+                        id="alt_suburb"
+                        value={formData.alternateAddress.suburb}
+                        onChange={(e) => handleChange("alternateAddress", {
+                          ...formData.alternateAddress,
+                          suburb: e.target.value
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="alt_city">City *</Label>
+                      <Input
+                        id="alt_city"
+                        value={formData.alternateAddress.city}
+                        onChange={(e) => handleChange("alternateAddress", {
+                          ...formData.alternateAddress,
+                          city: e.target.value
+                        })}
+                        required={!formData.useProfileAddress}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="alt_province">Province</Label>
+                      <Input
+                        id="alt_province"
+                        value={formData.alternateAddress.province}
+                        onChange={(e) => handleChange("alternateAddress", {
+                          ...formData.alternateAddress,
+                          province: e.target.value
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="alt_postal_code">Postal Code</Label>
+                      <Input
+                        id="alt_postal_code"
+                        value={formData.alternateAddress.postal_code}
+                        onChange={(e) => handleChange("alternateAddress", {
+                          ...formData.alternateAddress,
+                          postal_code: e.target.value
+                        })}
                       />
                     </div>
                   </div>
