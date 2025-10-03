@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const NewPatient = () => {
   const navigate = useNavigate();
@@ -190,6 +191,20 @@ const NewPatient = () => {
             <CardDescription>Patient residential address for home visits</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <AddressAutocomplete
+              onAddressSelect={(address) => {
+                setFormData(prev => ({
+                  ...prev,
+                  address_line1: address.address_line1,
+                  suburb: address.suburb,
+                  city: address.city,
+                  province: address.province,
+                  postal_code: address.postal_code
+                }));
+              }}
+              disabled={loading}
+            />
+            
             <div className="space-y-2">
               <Label htmlFor="address_line1">Address Line 1</Label>
               <Input
