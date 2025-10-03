@@ -528,6 +528,7 @@ export type Database = {
           scheduled_end: string
           scheduled_start: string
           status: Database["public"]["Enums"]["visit_status"]
+          teams_meeting_url: string | null
           updated_at: string
         }
         Insert: {
@@ -548,6 +549,7 @@ export type Database = {
           scheduled_end: string
           scheduled_start: string
           status?: Database["public"]["Enums"]["visit_status"]
+          teams_meeting_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -568,6 +570,7 @@ export type Database = {
           scheduled_end?: string
           scheduled_start?: string
           status?: Database["public"]["Enums"]["visit_status"]
+          teams_meeting_url?: string | null
           updated_at?: string
         }
         Relationships: [
