@@ -368,7 +368,7 @@ const NewPatient = () => {
         <Card>
           <CardHeader>
             <CardTitle>Consent & Privacy</CardTitle>
-            <CardDescription>POPIA compliance and patient consent</CardDescription>
+            <CardDescription>Data Protection Act compliance and patient consent</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-start space-x-3">
@@ -389,7 +389,7 @@ const NewPatient = () => {
                 </Label>
                 <p className="text-sm text-muted-foreground">
                   I confirm that the patient has been informed about how their personal and medical 
-                  information will be used, stored, and protected in accordance with POPIA regulations.
+                  information will be used, stored, and protected in accordance with the Botswana Data Protection Act, 2018.
                 </p>
               </div>
             </div>
