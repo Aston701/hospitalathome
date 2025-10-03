@@ -116,7 +116,7 @@ const VitalsDisplay = ({ visitId }: VitalsDisplayProps) => {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium capitalize">
                         {vital.type.replace(/_/g, " ")}
                       </p>
@@ -127,13 +127,19 @@ const VitalsDisplay = ({ visitId }: VitalsDisplayProps) => {
                         Recorded by {vital.nurse?.full_name || "Unknown"} on{" "}
                         {format(new Date(vital.timestamp), "dd MMM yyyy HH:mm")}
                       </p>
+                      {(vital.raw_payload as any)?.notes && (
+                        <div className="mt-2 p-2 bg-muted rounded text-sm">
+                          <p className="font-medium text-xs text-muted-foreground mb-1">Clinical Notes:</p>
+                          <p className="text-foreground">{(vital.raw_payload as any).notes}</p>
+                        </div>
+                      )}
                     </div>
                     {photoUrls[vital.id] && (
                       <a
                         href={photoUrls[vital.id]}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline"
+                        className="text-sm text-primary hover:underline ml-4"
                       >
                         View Photo
                       </a>

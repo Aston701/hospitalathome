@@ -24,6 +24,10 @@ const VisitTimeline = ({ events }: VisitTimelineProps) => {
       return <Calendar className="h-4 w-4" />;
     }
     
+    if (eventType === "vitals_recorded") {
+      return <Activity className="h-4 w-4" />;
+    }
+    
     const status = eventData?.new_status || "";
     switch (status) {
       case "en_route":
@@ -42,6 +46,10 @@ const VisitTimeline = ({ events }: VisitTimelineProps) => {
       return "Visit Scheduled";
     }
     
+    if (eventType === "vitals_recorded") {
+      return "Vitals Recorded";
+    }
+    
     if (eventType === "status_change") {
       const newStatus = eventData?.new_status || "";
       return `Status changed to ${newStatus.replace(/_/g, " ")}`;
@@ -56,6 +64,11 @@ const VisitTimeline = ({ events }: VisitTimelineProps) => {
       if (scheduledStart) {
         return `Scheduled for ${format(new Date(scheduledStart), "dd MMM yyyy, HH:mm")}`;
       }
+    }
+    
+    if (eventType === "vitals_recorded") {
+      const vitalsCount = eventData?.vitals_count || 0;
+      return `${vitalsCount} vital sign${vitalsCount !== 1 ? 's' : ''} recorded`;
     }
     
     if (eventType === "status_change") {
@@ -137,6 +150,13 @@ const VisitTimeline = ({ events }: VisitTimelineProps) => {
                         <p className="text-sm text-muted-foreground">
                           {getEventDescription(event.event_type, event.event_data)}
                         </p>
+                      )}
+                      
+                      {event.event_type === "vitals_recorded" && event.event_data?.notes && (
+                        <div className="mt-2 p-2 bg-muted rounded text-sm">
+                          <p className="font-medium text-xs text-muted-foreground mb-1">Clinical Notes:</p>
+                          <p className="text-foreground">{event.event_data.notes}</p>
+                        </div>
                       )}
                       
                       <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">

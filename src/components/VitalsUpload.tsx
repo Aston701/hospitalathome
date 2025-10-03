@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, FileText } from "lucide-react";
@@ -25,6 +26,7 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
     temperature: "",
     oxygen_saturation: "",
     respiratory_rate: "",
+    notes: "",
   });
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,7 +90,8 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           raw_payload: {
             systolic: parseFloat(vitalsData.blood_pressure_systolic),
             diastolic: parseFloat(vitalsData.blood_pressure_diastolic),
-            photo_url: photoPath
+            photo_url: photoPath,
+            notes: vitalsData.notes || null
           }
         });
       }
@@ -100,7 +103,10 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           value_number: parseFloat(vitalsData.heart_rate),
           unit: 'bpm',
           captured_by_user_id: user.id,
-          raw_payload: { photo_url: photoPath }
+          raw_payload: { 
+            photo_url: photoPath,
+            notes: vitalsData.notes || null
+          }
         });
       }
 
@@ -111,7 +117,10 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           value_number: parseFloat(vitalsData.temperature),
           unit: '°C',
           captured_by_user_id: user.id,
-          raw_payload: { photo_url: photoPath }
+          raw_payload: { 
+            photo_url: photoPath,
+            notes: vitalsData.notes || null
+          }
         });
       }
 
@@ -122,7 +131,10 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           value_number: parseFloat(vitalsData.oxygen_saturation),
           unit: '%',
           captured_by_user_id: user.id,
-          raw_payload: { photo_url: photoPath }
+          raw_payload: { 
+            photo_url: photoPath,
+            notes: vitalsData.notes || null
+          }
         });
       }
 
@@ -133,7 +145,10 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
           value_number: parseFloat(vitalsData.respiratory_rate),
           unit: 'breaths/min',
           captured_by_user_id: user.id,
-          raw_payload: { photo_url: photoPath }
+          raw_payload: { 
+            photo_url: photoPath,
+            notes: vitalsData.notes || null
+          }
         });
       }
 
@@ -147,6 +162,21 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
         if (vitalsError) {
           console.error("Vitals insert error:", vitalsError);
           throw vitalsError;
+        }
+
+        // Create timeline event if notes are provided
+        if (vitalsData.notes) {
+          await supabase
+            .from('visit_events')
+            .insert({
+              visit_id: visitId,
+              event_type: 'vitals_recorded',
+              event_data: {
+                notes: vitalsData.notes,
+                vitals_count: vitalsToInsert.length
+              },
+              created_by: user.id
+            });
         }
       }
 
@@ -163,6 +193,7 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
         temperature: "",
         oxygen_saturation: "",
         respiratory_rate: "",
+        notes: "",
       });
       setPhoto(null);
       setPhotoPreview(null);
@@ -286,6 +317,20 @@ const VitalsUpload = ({ visitId, onUploadComplete }: VitalsUploadProps) => {
                 />
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Clinical Notes</Label>
+            <Textarea
+              id="notes"
+              placeholder="Add any observations or notes about the patient's condition..."
+              value={vitalsData.notes}
+              onChange={(e) => setVitalsData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              These notes will appear in the visit timeline
+            </p>
           </div>
 
           <Button type="submit" disabled={uploading} className="w-full">
