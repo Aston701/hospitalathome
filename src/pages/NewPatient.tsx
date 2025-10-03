@@ -132,13 +132,13 @@ const NewPatient = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="sa_id_number">SA ID Number</Label>
+                <Label htmlFor="sa_id_number">Omang ID Number</Label>
                 <Input
                   id="sa_id_number"
                   name="sa_id_number"
                   value={formData.sa_id_number}
                   onChange={handleChange}
-                  placeholder="YYMMDDXXXXXX"
+                  placeholder="000000000"
                   disabled={loading}
                 />
               </div>
@@ -164,7 +164,7 @@ const NewPatient = () => {
                   type="tel"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="+27 XX XXX XXXX"
+                  placeholder="+267 XX XXX XXX"
                   required
                   disabled={loading}
                 />
