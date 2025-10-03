@@ -60,7 +60,6 @@ export const AddressAutocomplete = ({ onAddressSelect, value, disabled }: Addres
 
     // Initialize autocomplete
     autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-      componentRestrictions: { country: "za" }, // Restrict to South Africa
       fields: ["address_components", "formatted_address"],
     });
 
