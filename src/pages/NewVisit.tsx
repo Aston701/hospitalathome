@@ -905,6 +905,15 @@ const NewVisit = () => {
       : 'Not available')
   : `${formData.alternateAddress.address_line1 || ''}${formData.alternateAddress.address_line2 ? ', ' + formData.alternateAddress.address_line2 : ''}, ${formData.alternateAddress.suburb || ''}, ${formData.alternateAddress.city || ''}, ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim() || 'Not specified'}
 
+*Google Maps Link:* ${(() => {
+  const address = formData.useProfileAddress
+    ? (selectedPatient 
+        ? `${selectedPatient.address_line1 || ''} ${selectedPatient.address_line2 || ''} ${selectedPatient.suburb || ''} ${selectedPatient.city || ''} ${selectedPatient.province || ''} ${selectedPatient.postal_code || ''}`.trim()
+        : '')
+    : `${formData.alternateAddress.address_line1 || ''} ${formData.alternateAddress.address_line2 || ''} ${formData.alternateAddress.suburb || ''} ${formData.alternateAddress.city || ''} ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim();
+  return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : 'Address not available';
+})()}
+
 *Appointment Date:* ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
 
 *Appointment Time:* ${formData.scheduled_time || 'Not selected'}
@@ -929,6 +938,13 @@ const NewVisit = () => {
                 variant="outline"
                 className="absolute top-2 right-2"
                 onClick={() => {
+                  const address = formData.useProfileAddress
+                    ? (selectedPatient 
+                        ? `${selectedPatient.address_line1 || ''} ${selectedPatient.address_line2 || ''} ${selectedPatient.suburb || ''} ${selectedPatient.city || ''} ${selectedPatient.province || ''} ${selectedPatient.postal_code || ''}`.trim()
+                        : '')
+                    : `${formData.alternateAddress.address_line1 || ''} ${formData.alternateAddress.address_line2 || ''} ${formData.alternateAddress.suburb || ''} ${formData.alternateAddress.city || ''} ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim();
+                  const mapsLink = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : 'Address not available';
+                  
                   const message = `*NEW HOSPITAL AT HOME VISIT*
 
 *Patient Name & Surname:* ${selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Not selected'}
@@ -940,6 +956,8 @@ const NewVisit = () => {
       ? `${selectedPatient.address_line1 || ''}${selectedPatient.address_line2 ? ', ' + selectedPatient.address_line2 : ''}, ${selectedPatient.suburb || ''}, ${selectedPatient.city || ''}, ${selectedPatient.province || ''} ${selectedPatient.postal_code || ''}`.trim()
       : 'Not available')
   : `${formData.alternateAddress.address_line1 || ''}${formData.alternateAddress.address_line2 ? ', ' + formData.alternateAddress.address_line2 : ''}, ${formData.alternateAddress.suburb || ''}, ${formData.alternateAddress.city || ''}, ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim() || 'Not specified'}
+
+*Google Maps Link:* ${mapsLink}
 
 *Appointment Date:* ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
 
