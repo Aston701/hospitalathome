@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Calendar, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, Save, Calendar, Clock, MapPin, Copy, Check } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +30,7 @@ const NewVisit = () => {
   const [dayVisits, setDayVisits] = useState<any[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [patientDataLoading, setPatientDataLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   const [formData, setFormData] = useState({
     patient_id: preSelectedPatient || "",
@@ -878,6 +879,104 @@ const NewVisit = () => {
                 placeholder="Special instructions, patient requests, or other important information..."
                 disabled={loading}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Message Template */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Visit Summary Message</CardTitle>
+            <CardDescription>Copy this message to share visit details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="relative">
+              <Textarea
+                readOnly
+                value={`NEW HOSPITAL AT HOME VISIT
+
+Patient Name & Surname: ${selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Not selected'}
+
+Patient Contact Number: ${selectedPatient?.phone || 'Not available'}
+
+Location of visit: ${formData.useProfileAddress 
+  ? (selectedPatient 
+      ? `${selectedPatient.address_line1 || ''}${selectedPatient.address_line2 ? ', ' + selectedPatient.address_line2 : ''}, ${selectedPatient.suburb || ''}, ${selectedPatient.city || ''}, ${selectedPatient.province || ''} ${selectedPatient.postal_code || ''}`.trim()
+      : 'Not available')
+  : `${formData.alternateAddress.address_line1 || ''}${formData.alternateAddress.address_line2 ? ', ' + formData.alternateAddress.address_line2 : ''}, ${formData.alternateAddress.suburb || ''}, ${formData.alternateAddress.city || ''}, ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim() || 'Not specified'}
+
+Appointment Date: ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
+
+Appointment Time: ${formData.scheduled_time || 'Not selected'}
+
+Medical Information: ${selectedPatient?.conditions?.join(', ') || 'None recorded'}
+
+Allergies: ${selectedPatient?.allergies?.join(', ') || 'None recorded'}
+
+Assigned Nurse: ${nurses.find(n => n.id === formData.nurse_id)?.full_name || 'Not assigned'}
+
+Assigned Doctor: ${doctors.find(d => d.id === formData.doctor_id)?.full_name || 'Not assigned'}
+
+Assigned Medical Box: ${medicalBoxes.find(mb => mb.id === formData.medical_box_id)?.label || 'Not assigned'}
+
+Additional Notes: ${formData.notes || 'None'}`}
+                rows={22}
+                className="resize-none font-mono text-sm"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="absolute top-2 right-2"
+                onClick={() => {
+                  const message = `NEW HOSPITAL AT HOME VISIT
+
+Patient Name & Surname: ${selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Not selected'}
+
+Patient Contact Number: ${selectedPatient?.phone || 'Not available'}
+
+Location of visit: ${formData.useProfileAddress 
+  ? (selectedPatient 
+      ? `${selectedPatient.address_line1 || ''}${selectedPatient.address_line2 ? ', ' + selectedPatient.address_line2 : ''}, ${selectedPatient.suburb || ''}, ${selectedPatient.city || ''}, ${selectedPatient.province || ''} ${selectedPatient.postal_code || ''}`.trim()
+      : 'Not available')
+  : `${formData.alternateAddress.address_line1 || ''}${formData.alternateAddress.address_line2 ? ', ' + formData.alternateAddress.address_line2 : ''}, ${formData.alternateAddress.suburb || ''}, ${formData.alternateAddress.city || ''}, ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim() || 'Not specified'}
+
+Appointment Date: ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
+
+Appointment Time: ${formData.scheduled_time || 'Not selected'}
+
+Medical Information: ${selectedPatient?.conditions?.join(', ') || 'None recorded'}
+
+Allergies: ${selectedPatient?.allergies?.join(', ') || 'None recorded'}
+
+Assigned Nurse: ${nurses.find(n => n.id === formData.nurse_id)?.full_name || 'Not assigned'}
+
+Assigned Doctor: ${doctors.find(d => d.id === formData.doctor_id)?.full_name || 'Not assigned'}
+
+Assigned Medical Box: ${medicalBoxes.find(mb => mb.id === formData.medical_box_id)?.label || 'Not assigned'}
+
+Additional Notes: ${formData.notes || 'None'}`;
+                  navigator.clipboard.writeText(message);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                  toast({
+                    title: "Copied!",
+                    description: "Visit summary copied to clipboard"
+                  });
+                }}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
