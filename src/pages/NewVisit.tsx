@@ -14,6 +14,7 @@ import { ArrowLeft, Save, Calendar, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const NewVisit = () => {
   const navigate = useNavigate();
@@ -550,6 +551,18 @@ const NewVisit = () => {
               ) : (
                 <div className="space-y-4 p-4 border rounded-lg">
                   <p className="text-sm font-medium">Alternate Address</p>
+                  
+                  <AddressAutocomplete
+                    value={formData.alternateAddress.address_line1}
+                    onAddressSelect={(components) => {
+                      handleChange("alternateAddress", {
+                        ...formData.alternateAddress,
+                        ...components
+                      });
+                    }}
+                    disabled={loading}
+                  />
+
                   <div className="space-y-2">
                     <Label htmlFor="alt_address_line1">Address Line 1 *</Label>
                     <Input
