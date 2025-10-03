@@ -26,6 +26,8 @@ const NewVisit = () => {
   const [doctors, setDoctors] = useState<any[]>([]);
   const [medicalBoxes, setMedicalBoxes] = useState<any[]>([]);
   const [dayVisits, setDayVisits] = useState<any[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [patientDataLoading, setPatientDataLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     patient_id: preSelectedPatient || "",
@@ -48,6 +50,60 @@ const NewVisit = () => {
       fetchDayVisits();
     }
   }, [formData.scheduled_date]);
+
+  useEffect(() => {
+    if (formData.patient_id) {
+      fetchPatientDetails();
+    } else {
+      setSelectedPatient(null);
+    }
+  }, [formData.patient_id]);
+
+  const fetchPatientDetails = async () => {
+    setPatientDataLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("id", formData.patient_id)
+        .single();
+
+      if (error) throw error;
+      setSelectedPatient(data);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load patient details"
+      });
+    } finally {
+      setPatientDataLoading(false);
+    }
+  };
+
+  const updatePatientField = async (field: string, value: any) => {
+    try {
+      const { error } = await supabase
+        .from("patients")
+        .update({ [field]: value })
+        .eq("id", formData.patient_id);
+
+      if (error) throw error;
+
+      setSelectedPatient((prev: any) => ({ ...prev, [field]: value }));
+      
+      toast({
+        title: "Updated",
+        description: "Patient information updated successfully"
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update patient information"
+      });
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -256,6 +312,165 @@ const NewVisit = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Patient Medical Information */}
+        {formData.patient_id && selectedPatient && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Patient Medical Information</CardTitle>
+              <CardDescription>Verify and update patient details if needed</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {patientDataLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="inline-block h-6 w-6 animate-spin rounded-full border-3 border-solid border-primary border-r-transparent"></div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Personal Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">First Name</Label>
+                      <Input
+                        id="first_name"
+                        value={selectedPatient.first_name || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, first_name: e.target.value })}
+                        onBlur={(e) => updatePatientField('first_name', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">Last Name</Label>
+                      <Input
+                        id="last_name"
+                        value={selectedPatient.last_name || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, last_name: e.target.value })}
+                        onBlur={(e) => updatePatientField('last_name', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        value={selectedPatient.phone || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, phone: e.target.value })}
+                        onBlur={(e) => updatePatientField('phone', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={selectedPatient.email || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, email: e.target.value })}
+                        onBlur={(e) => updatePatientField('email', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sa_id_number">ID Number</Label>
+                    <Input
+                      id="sa_id_number"
+                      value={selectedPatient.sa_id_number || ''}
+                      onChange={(e) => setSelectedPatient({ ...selectedPatient, sa_id_number: e.target.value })}
+                      onBlur={(e) => updatePatientField('sa_id_number', e.target.value)}
+                    />
+                  </div>
+
+                  {/* Medical Aid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="medical_aid_provider">Medical Aid Provider</Label>
+                      <Input
+                        id="medical_aid_provider"
+                        value={selectedPatient.medical_aid_provider || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, medical_aid_provider: e.target.value })}
+                        onBlur={(e) => updatePatientField('medical_aid_provider', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="medical_aid_number">Medical Aid Number</Label>
+                      <Input
+                        id="medical_aid_number"
+                        value={selectedPatient.medical_aid_number || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, medical_aid_number: e.target.value })}
+                        onBlur={(e) => updatePatientField('medical_aid_number', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="medical_aid_plan">Medical Aid Plan</Label>
+                      <Input
+                        id="medical_aid_plan"
+                        value={selectedPatient.medical_aid_plan || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, medical_aid_plan: e.target.value })}
+                        onBlur={(e) => updatePatientField('medical_aid_plan', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Medical Information */}
+                  <div className="space-y-2">
+                    <Label htmlFor="allergies">Allergies</Label>
+                    <Input
+                      id="allergies"
+                      value={selectedPatient.allergies?.join(', ') || ''}
+                      onChange={(e) => setSelectedPatient({ ...selectedPatient, allergies: e.target.value.split(',').map((s: string) => s.trim()) })}
+                      onBlur={(e) => updatePatientField('allergies', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                      placeholder="Separate multiple allergies with commas"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="conditions">Conditions</Label>
+                    <Input
+                      id="conditions"
+                      value={selectedPatient.conditions?.join(', ') || ''}
+                      onChange={(e) => setSelectedPatient({ ...selectedPatient, conditions: e.target.value.split(',').map((s: string) => s.trim()) })}
+                      onBlur={(e) => updatePatientField('conditions', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                      placeholder="Separate multiple conditions with commas"
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div className="space-y-2">
+                    <Label htmlFor="address_line1">Address Line 1</Label>
+                    <Input
+                      id="address_line1"
+                      value={selectedPatient.address_line1 || ''}
+                      onChange={(e) => setSelectedPatient({ ...selectedPatient, address_line1: e.target.value })}
+                      onBlur={(e) => updatePatientField('address_line1', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="suburb">Suburb</Label>
+                      <Input
+                        id="suburb"
+                        value={selectedPatient.suburb || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, suburb: e.target.value })}
+                        onBlur={(e) => updatePatientField('suburb', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={selectedPatient.city || ''}
+                        onChange={(e) => setSelectedPatient({ ...selectedPatient, city: e.target.value })}
+                        onBlur={(e) => updatePatientField('city', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Schedule Details */}
         <Card>
