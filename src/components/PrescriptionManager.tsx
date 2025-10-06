@@ -1,0 +1,380 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2, FileText, CheckCircle } from "lucide-react";
+
+interface PrescriptionItem {
+  drug: string;
+  dose: string;
+  frequency: string;
+  duration: string;
+}
+
+interface PrescriptionManagerProps {
+  visitId: string;
+  userRole: string;
+  currentUserId: string;
+}
+
+const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionManagerProps) => {
+  const { toast } = useToast();
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingPrescription, setEditingPrescription] = useState<string | null>(null);
+  const [items, setItems] = useState<PrescriptionItem[]>([]);
+
+  useEffect(() => {
+    fetchPrescriptions();
+  }, [visitId]);
+
+  const fetchPrescriptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("prescriptions")
+        .select(`
+          *,
+          doctor:doctor_id(full_name)
+        `)
+        .eq("visit_id", visitId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setPrescriptions(data || []);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreatePrescription = async () => {
+    try {
+      const { data: visit } = await supabase
+        .from("visits")
+        .select("doctor_id")
+        .eq("id", visitId)
+        .single();
+
+      if (!visit?.doctor_id) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "This visit must have a doctor assigned before creating a prescription",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("prescriptions")
+        .insert({
+          visit_id: visitId,
+          doctor_id: visit.doctor_id,
+          items: [],
+          status: "draft",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setEditingPrescription(data.id);
+      setItems([{ drug: "", dose: "", frequency: "", duration: "" }]);
+      fetchPrescriptions();
+
+      toast({
+        title: "Success",
+        description: "Prescription created",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  };
+
+  const handleEditPrescription = (prescription: any) => {
+    setEditingPrescription(prescription.id);
+    setItems(prescription.items.length > 0 ? prescription.items : [{ drug: "", dose: "", frequency: "", duration: "" }]);
+  };
+
+  const handleSavePrescription = async () => {
+    if (!editingPrescription) return;
+
+    const validItems = items.filter(item => item.drug.trim() !== "");
+
+    try {
+      const { error } = await supabase
+        .from("prescriptions")
+        .update({
+          items: validItems as any,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editingPrescription);
+
+      if (error) throw error;
+
+      setEditingPrescription(null);
+      setItems([]);
+      fetchPrescriptions();
+
+      toast({
+        title: "Success",
+        description: "Prescription updated",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  };
+
+  const handleApprovePrescription = async (prescriptionId: string) => {
+    try {
+      const { error } = await supabase
+        .from("prescriptions")
+        .update({
+          status: "signed",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", prescriptionId);
+
+      if (error) throw error;
+
+      fetchPrescriptions();
+
+      toast({
+        title: "Success",
+        description: "Prescription approved and signed",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  };
+
+  const addItem = () => {
+    setItems([...items, { drug: "", dose: "", frequency: "", duration: "" }]);
+  };
+
+  const removeItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: keyof PrescriptionItem, value: string) => {
+    const newItems = [...items];
+    newItems[index][field] = value;
+    setItems(newItems);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "draft":
+        return <Badge variant="outline" className="bg-secondary">Draft</Badge>;
+      case "signed":
+        return <Badge variant="outline" className="bg-success/10 text-success border-success/20">Signed</Badge>;
+      case "sent_to_patient":
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">Sent to Patient</Badge>;
+      case "sent_to_pharmacy":
+        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Sent to Pharmacy</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const canEdit = (prescription: any) => {
+    if (userRole === "admin" || userRole === "control_room") return true;
+    if (userRole === "doctor" && prescription.doctor_id === currentUserId) return true;
+    if (userRole === "nurse" && prescription.status === "draft") return true;
+    return false;
+  };
+
+  const canApprove = (prescription: any) => {
+    return (userRole === "doctor" && prescription.doctor_id === currentUserId && prescription.status === "draft");
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Prescriptions</CardTitle>
+          {(userRole === "nurse" || userRole === "doctor" || userRole === "admin" || userRole === "control_room") && (
+            <Button onClick={handleCreatePrescription} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              New Prescription
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {prescriptions.length === 0 && !editingPrescription ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>No prescriptions yet</p>
+          </div>
+        ) : (
+          prescriptions.map((prescription) => (
+            <div key={prescription.id} className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h4 className="font-semibold">Prescription</h4>
+                  {getStatusBadge(prescription.status)}
+                </div>
+                <div className="flex gap-2">
+                  {canEdit(prescription) && prescription.status === "draft" && editingPrescription !== prescription.id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditPrescription(prescription)}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  {canApprove(prescription) && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleApprovePrescription(prescription.id)}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Approve & Sign
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {prescription.doctor && (
+                <p className="text-sm text-muted-foreground">
+                  Prescribed by: Dr. {prescription.doctor.full_name}
+                </p>
+              )}
+
+              {editingPrescription === prescription.id ? (
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-3">
+                    {items.map((item, index) => (
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border rounded-lg">
+                        <div className="space-y-1">
+                          <Label htmlFor={`drug-${index}`}>Medication</Label>
+                          <Input
+                            id={`drug-${index}`}
+                            value={item.drug}
+                            onChange={(e) => updateItem(index, "drug", e.target.value)}
+                            placeholder="Drug name"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`dose-${index}`}>Dose</Label>
+                          <Input
+                            id={`dose-${index}`}
+                            value={item.dose}
+                            onChange={(e) => updateItem(index, "dose", e.target.value)}
+                            placeholder="e.g., 500mg"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`frequency-${index}`}>Frequency</Label>
+                          <Input
+                            id={`frequency-${index}`}
+                            value={item.frequency}
+                            onChange={(e) => updateItem(index, "frequency", e.target.value)}
+                            placeholder="e.g., twice daily"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`duration-${index}`}>Duration</Label>
+                          <Input
+                            id={`duration-${index}`}
+                            value={item.duration}
+                            onChange={(e) => updateItem(index, "duration", e.target.value)}
+                            placeholder="e.g., 7 days"
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(index)}
+                            disabled={items.length === 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={addItem}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Medication
+                    </Button>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setEditingPrescription(null);
+                        setItems([]);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSavePrescription}>
+                      Save Prescription
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                prescription.items.length > 0 && (
+                  <div className="space-y-2 mt-3">
+                    <p className="text-sm font-medium">Medications:</p>
+                    {prescription.items.map((item: PrescriptionItem, idx: number) => (
+                      <div key={idx} className="text-sm bg-muted/50 p-3 rounded">
+                        <p className="font-medium">{item.drug}</p>
+                        <p className="text-muted-foreground">
+                          {item.dose} - {item.frequency} for {item.duration}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PrescriptionManager;

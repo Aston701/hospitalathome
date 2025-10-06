@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import VisitTimeline from "@/components/VisitTimeline";
 import VitalsUpload from "@/components/VitalsUpload";
 import VitalsDisplay from "@/components/VitalsDisplay";
+import PrescriptionManager from "@/components/PrescriptionManager";
 
 type VisitStatus = Database["public"]["Enums"]["visit_status"];
 
@@ -603,6 +604,12 @@ const VisitDetail = () => {
       )}
 
       <VitalsDisplay visitId={visit.id} />
+
+      <PrescriptionManager 
+        visitId={visit.id} 
+        userRole={userRole || ""} 
+        currentUserId={currentUserId || ""} 
+      />
 
       {visit.notes && (
         <Card>
