@@ -39,7 +39,9 @@ const VisitDetail = () => {
     scheduled_end: "",
     nurse_id: "",
     status: "",
-    notes: ""
+    notes: "",
+    teams_meeting_url: "",
+    transcription: ""
   });
 
   useEffect(() => {
@@ -179,7 +181,9 @@ const VisitDetail = () => {
       scheduled_end: visit.scheduled_end,
       nurse_id: visit.nurse_id || "unassigned",
       status: visit.status,
-      notes: visit.notes || ""
+      notes: visit.notes || "",
+      teams_meeting_url: visit.teams_meeting_url || "",
+      transcription: visit.transcription || ""
     });
     setEditDialogOpen(true);
   };
@@ -196,7 +200,9 @@ const VisitDetail = () => {
           scheduled_end: editFormData.scheduled_end,
           nurse_id: editFormData.nurse_id === "unassigned" ? null : editFormData.nurse_id,
           status: editFormData.status as VisitStatus,
-          notes: editFormData.notes
+          notes: editFormData.notes,
+          teams_meeting_url: editFormData.teams_meeting_url,
+          transcription: editFormData.transcription
         })
         .eq("id", id);
 
@@ -413,6 +419,34 @@ const VisitDetail = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="teams_meeting_url">Teams Meeting URL</Label>
+              <Input
+                id="teams_meeting_url"
+                type="url"
+                placeholder="https://teams.microsoft.com/..."
+                value={editFormData.teams_meeting_url}
+                onChange={(e) => setEditFormData(prev => ({ 
+                  ...prev, 
+                  teams_meeting_url: e.target.value 
+                }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="transcription">Visit Transcription</Label>
+              <Textarea
+                id="transcription"
+                placeholder="Paste the transcription from the visit here..."
+                value={editFormData.transcription}
+                onChange={(e) => setEditFormData(prev => ({ 
+                  ...prev, 
+                  transcription: e.target.value 
+                }))}
+                rows={6}
+              />
+            </div>
+
             <div className="flex justify-end gap-3 pt-4">
               <Button
                 type="button"
@@ -495,6 +529,37 @@ const VisitDetail = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Doctor</p>
                   <p className="font-medium">Dr. {visit.doctor.full_name}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {(visit.teams_meeting_url || visit.transcription) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Visit Documentation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {visit.teams_meeting_url && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Teams Meeting URL</p>
+                <a 
+                  href={visit.teams_meeting_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline break-all"
+                >
+                  {visit.teams_meeting_url}
+                </a>
+              </div>
+            )}
+            {visit.transcription && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Visit Transcription</p>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="text-sm whitespace-pre-wrap">{visit.transcription}</p>
                 </div>
               </div>
             )}
