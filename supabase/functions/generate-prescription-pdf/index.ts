@@ -13,12 +13,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting PDF generation...');
     const { prescriptionId } = await req.json();
+    console.log('Prescription ID:', prescriptionId);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+    console.log('Supabase client created');
 
     // Fetch prescription with related data
     const { data: prescription, error: prescriptionError } = await supabaseClient
@@ -34,9 +37,18 @@ serve(async (req) => {
       .eq('id', prescriptionId)
       .single();
 
+    console.log('Prescription query result:', { 
+      hasData: !!prescription, 
+      hasError: !!prescriptionError,
+      error: prescriptionError 
+    });
+
     if (prescriptionError || !prescription) {
+      console.error('Prescription not found:', prescriptionError);
       throw new Error('Prescription not found');
     }
+
+    console.log('Creating PDF document...');
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
@@ -247,10 +259,13 @@ serve(async (req) => {
     });
 
     // Generate PDF
+    console.log('Saving PDF...');
     const pdfBytes = await pdfDoc.save();
+    console.log('PDF saved, size:', pdfBytes.length);
 
     // Upload to storage
     const fileName = `${prescriptionId}.pdf`;
+    console.log('Uploading to storage:', fileName);
     const { error: uploadError } = await supabaseClient.storage
       .from('prescriptions')
       .upload(fileName, pdfBytes, {
@@ -259,23 +274,37 @@ serve(async (req) => {
       });
 
     if (uploadError) {
+      console.error('Upload error:', uploadError);
       throw uploadError;
     }
+    console.log('Upload successful');
 
-    // Get public URL (signed URL for private bucket)
-    const { data: { signedUrl } } = await supabaseClient.storage
+    // Get signed URL for private bucket
+    console.log('Creating signed URL...');
+    const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage
       .from('prescriptions')
       .createSignedUrl(fileName, 31536000); // 1 year expiry
 
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error('Signed URL error:', signedUrlError);
+      throw new Error('Failed to create signed URL');
+    }
+
+    const signedUrl = signedUrlData.signedUrl;
+    console.log('Signed URL created');
+
     // Update prescription with PDF URL
+    console.log('Updating prescription with PDF URL...');
     const { error: updateError } = await supabaseClient
       .from('prescriptions')
       .update({ pdf_url: signedUrl })
       .eq('id', prescriptionId);
 
     if (updateError) {
+      console.error('Update error:', updateError);
       throw updateError;
     }
+    console.log('Prescription updated successfully');
 
     return new Response(
       JSON.stringify({ success: true, pdfUrl: signedUrl }),
@@ -284,8 +313,9 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error generating prescription PDF:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error message:', errorMessage);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: errorMessage, success: false }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

@@ -141,6 +141,42 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
     }
   };
 
+  const handleGeneratePDF = async (prescriptionId: string) => {
+    try {
+      toast({
+        title: "Generating PDF",
+        description: "Please wait...",
+      });
+
+      const { data, error: pdfError } = await supabase.functions.invoke('generate-prescription-pdf', {
+        body: { prescriptionId }
+      });
+
+      if (pdfError) {
+        console.error('PDF Error:', pdfError);
+        throw new Error(pdfError.message || 'Failed to generate PDF');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to generate PDF');
+      }
+
+      fetchPrescriptions();
+
+      toast({
+        title: "Success",
+        description: "PDF generated successfully",
+      });
+    } catch (error: any) {
+      console.error('Generate PDF error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to generate PDF",
+      });
+    }
+  };
+
   const handleApprovePrescription = async (prescriptionId: string) => {
     try {
       const { error } = await supabase
@@ -153,24 +189,12 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
 
       if (error) throw error;
 
-      // Generate PDF
-      const { data, error: pdfError } = await supabase.functions.invoke('generate-prescription-pdf', {
-        body: { prescriptionId }
-      });
-
-      if (pdfError) {
-        console.error('Error generating PDF:', pdfError);
-        toast({
-          title: "Warning",
-          description: "Prescription signed but PDF generation failed",
-        });
-      }
-
-      fetchPrescriptions();
+      // Generate PDF after approval
+      await handleGeneratePDF(prescriptionId);
 
       toast({
         title: "Success",
-        description: "Prescription approved and signed. PDF generated.",
+        description: "Prescription approved and signed",
       });
     } catch (error: any) {
       toast({
@@ -289,16 +313,34 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
                 </p>
               )}
 
-              {prescription.pdf_url && (
-                <div className="mt-3">
-                  <a
-                    href={prescription.pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    📄 Download PDF
-                  </a>
+              {prescription.doctor && (
+                <p className="text-sm text-muted-foreground">
+                  Prescribed by: Dr. {prescription.doctor.full_name}
+                </p>
+              )}
+
+              {prescription.status === 'signed' && (
+                <div className="mt-3 flex items-center gap-2">
+                  {prescription.pdf_url ? (
+                    <a
+                      href={prescription.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Download PDF
+                    </a>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGeneratePDF(prescription.id)}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate PDF
+                    </Button>
+                  )}
                 </div>
               )}
 
