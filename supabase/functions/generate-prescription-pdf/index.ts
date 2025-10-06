@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,11 +53,38 @@ serve(async (req) => {
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
+    
+    // Register fontkit for custom fonts
+    pdfDoc.registerFontkit(fontkit);
+    
     const page = pdfDoc.addPage([595, 842]); // A4 size
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+    
+    // Load handwritten font for signature
+    let handwrittenFont;
+    try {
+      console.log('Fetching handwritten font...');
+      // Using Pacifico font which is known to work well with pdf-lib
+      const fontUrl = 'https://github.com/google/fonts/raw/main/ofl/pacifico/Pacifico-Regular.ttf';
+      const fontResponse = await fetch(fontUrl);
+      
+      if (!fontResponse.ok) {
+        throw new Error(`Font fetch failed: ${fontResponse.status}`);
+      }
+      
+      const fontBytes = await fontResponse.arrayBuffer();
+      console.log('Font downloaded, size:', fontBytes.byteLength);
+      
+      handwrittenFont = await pdfDoc.embedFont(new Uint8Array(fontBytes));
+      console.log('Handwritten font embedded successfully');
+    } catch (fontError) {
+      console.error('Error loading handwritten font:', fontError);
+      console.log('Falling back to italic font');
+      handwrittenFont = italicFont; // Fallback to italic if custom font fails
+    }
 
     let yPosition = height - 50;
 
@@ -239,12 +267,12 @@ serve(async (req) => {
     yPosition = 180;
     
     if (prescription.signature_name) {
-      // Draw the signature name in italic style
+      // Draw the signature name in handwritten font
       page.drawText(prescription.signature_name, {
         x: 50,
         y: yPosition,
-        size: 24,
-        font: italicFont,
+        size: 28,
+        font: handwrittenFont,
         color: rgb(0, 0, 0),
       });
 
