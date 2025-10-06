@@ -67,8 +67,8 @@ serve(async (req) => {
     let handwrittenFont;
     try {
       console.log('Fetching handwritten font...');
-      // Using Pacifico font which is known to work well with pdf-lib
-      const fontUrl = 'https://github.com/google/fonts/raw/main/ofl/pacifico/Pacifico-Regular.ttf';
+      // Using Caveat font - a reliable handwritten font for pdf-lib
+      const fontUrl = 'https://github.com/google/fonts/raw/main/ofl/caveat/Caveat-Regular.ttf';
       const fontResponse = await fetch(fontUrl);
       
       if (!fontResponse.ok) {
