@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, User, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, User, Calendar, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -123,6 +124,18 @@ const Prescriptions = () => {
                       </div>
                     )}
                   </div>
+                  
+                  {prescription.pdf_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(prescription.pdf_url, '_blank')}
+                      className="ml-4"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
