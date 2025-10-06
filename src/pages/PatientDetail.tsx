@@ -16,8 +16,17 @@ import {
   Heart,
   Shield,
   FileText,
-  Plus
+  Plus,
+  Edit
 } from "lucide-react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { PatientForm } from "@/components/PatientForm";
 import { format } from "date-fns";
 
 const PatientDetail = () => {
@@ -27,6 +36,8 @@ const PatientDetail = () => {
   const [patient, setPatient] = useState<any>(null);
   const [visits, setVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -68,6 +79,41 @@ const PatientDetail = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdatePatient = async (formData: any) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("patients")
+        .update({
+          ...formData,
+          allergies: formData.allergies ? formData.allergies.split(",").map((a: string) => a.trim()) : [],
+          conditions: formData.conditions ? formData.conditions.split(",").map((c: string) => c.trim()) : [],
+          consent_timestamp: formData.consent_signed && !patient.consent_timestamp 
+            ? new Date().toISOString() 
+            : patient.consent_timestamp,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Patient updated",
+        description: "Patient details have been successfully updated."
+      });
+
+      setEditDialogOpen(false);
+      fetchPatientData();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -121,12 +167,35 @@ const PatientDetail = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Patient
+          </Button>
           <Button variant="outline" onClick={() => navigate(`/visits/new?patient=${id}`)}>
             <Plus className="h-4 w-4 mr-2" />
             Schedule Visit
           </Button>
         </div>
       </div>
+
+      {/* Edit Patient Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Patient Details</DialogTitle>
+            <DialogDescription>
+              Update patient information and clinical notes
+            </DialogDescription>
+          </DialogHeader>
+          <PatientForm
+            initialData={patient}
+            onSubmit={handleUpdatePatient}
+            loading={saving}
+            onCancel={() => setEditDialogOpen(false)}
+            submitLabel="Save Changes"
+          />
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Patient Info */}
