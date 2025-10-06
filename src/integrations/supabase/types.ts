@@ -264,6 +264,9 @@ export type Database = {
           id: string
           items: Json
           pdf_url: string | null
+          signature_ip: string | null
+          signature_name: string | null
+          signature_timestamp: string | null
           status: Database["public"]["Enums"]["prescription_status"]
           updated_at: string
           visit_id: string
@@ -274,6 +277,9 @@ export type Database = {
           id?: string
           items?: Json
           pdf_url?: string | null
+          signature_ip?: string | null
+          signature_name?: string | null
+          signature_timestamp?: string | null
           status?: Database["public"]["Enums"]["prescription_status"]
           updated_at?: string
           visit_id: string
@@ -284,6 +290,9 @@ export type Database = {
           id?: string
           items?: Json
           pdf_url?: string | null
+          signature_ip?: string | null
+          signature_name?: string | null
+          signature_timestamp?: string | null
           status?: Database["public"]["Enums"]["prescription_status"]
           updated_at?: string
           visit_id?: string

@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, FileText, CheckCircle } from "lucide-react";
+import { Plus, Trash2, FileText, CheckCircle, PenLine } from "lucide-react";
 
 interface PrescriptionItem {
   drug: string;
@@ -27,6 +28,9 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
   const [loading, setLoading] = useState(true);
   const [editingPrescription, setEditingPrescription] = useState<string | null>(null);
   const [items, setItems] = useState<PrescriptionItem[]>([]);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [selectedPrescriptionId, setSelectedPrescriptionId] = useState<string | null>(null);
+  const [signatureName, setSignatureName] = useState("");
 
   useEffect(() => {
     fetchPrescriptions();
@@ -178,19 +182,45 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
   };
 
   const handleApprovePrescription = async (prescriptionId: string) => {
+    setSelectedPrescriptionId(prescriptionId);
+    setSignatureDialogOpen(true);
+  };
+
+  const handleSignPrescription = async () => {
+    if (!signatureName.trim() || !selectedPrescriptionId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter your name to sign",
+      });
+      return;
+    }
+
     try {
+      // Get user's IP address
+      const ipResponse = await fetch('https://api.ipify.org?format=json');
+      const ipData = await ipResponse.json();
+      const ipAddress = ipData.ip;
+
       const { error } = await supabase
         .from("prescriptions")
         .update({
           status: "signed",
+          signature_name: signatureName,
+          signature_ip: ipAddress,
+          signature_timestamp: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq("id", prescriptionId);
+        .eq("id", selectedPrescriptionId);
 
       if (error) throw error;
 
       // Generate PDF after approval
-      await handleGeneratePDF(prescriptionId);
+      await handleGeneratePDF(selectedPrescriptionId);
+
+      setSignatureDialogOpen(false);
+      setSignatureName("");
+      setSelectedPrescriptionId(null);
 
       toast({
         title: "Success",
@@ -319,6 +349,19 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
                 </p>
               )}
 
+              {prescription.signature_name && (
+                <div className="mt-3 p-4 bg-muted/30 rounded-lg border">
+                  <p className="text-xs text-muted-foreground mb-2">Digital Signature:</p>
+                  <p className="font-signature text-3xl text-foreground mb-1">
+                    {prescription.signature_name}
+                  </p>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <p>Signed: {new Date(prescription.signature_timestamp).toLocaleString()}</p>
+                    <p>IP: {prescription.signature_ip}</p>
+                  </div>
+                </div>
+              )}
+
               {prescription.status === 'signed' && (
                 <div className="mt-3 flex items-center gap-2">
                   {prescription.pdf_url ? (
@@ -441,6 +484,58 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
           ))
         )}
       </CardContent>
+
+      <Dialog open={signatureDialogOpen} onOpenChange={setSignatureDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PenLine className="h-5 w-5" />
+              Sign Prescription
+            </DialogTitle>
+            <DialogDescription>
+              Please enter your full name to digitally sign this prescription.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="signature-name">Your Full Name</Label>
+              <Input
+                id="signature-name"
+                value={signatureName}
+                onChange={(e) => setSignatureName(e.target.value)}
+                placeholder="e.g., Dr. John Smith"
+                className="font-signature text-2xl"
+              />
+            </div>
+            
+            {signatureName && (
+              <div className="p-4 bg-muted/30 rounded-lg border">
+                <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                <p className="font-signature text-3xl text-foreground">
+                  {signatureName}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSignatureDialogOpen(false);
+                setSignatureName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSignPrescription}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Sign & Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

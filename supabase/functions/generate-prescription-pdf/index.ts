@@ -234,26 +234,64 @@ serve(async (req) => {
       yPosition -= 25;
     });
 
-    // Footer
-    yPosition = 100;
-    page.drawText('_________________________________', {
-      x: 50,
-      y: yPosition,
-      size: 12,
-      font: font,
-    });
+    // Footer with signature
+    yPosition = 150;
+    
+    if (prescription.signature_name) {
+      page.drawText('_________________________________', {
+        x: 50,
+        y: yPosition,
+        size: 12,
+        font: font,
+      });
 
-    yPosition -= 15;
-    page.drawText('Prescriber Signature', {
-      x: 50,
-      y: yPosition,
-      size: 10,
-      font: font,
-    });
+      yPosition -= 15;
+      page.drawText(`Digitally Signed by: ${prescription.signature_name}`, {
+        x: 50,
+        y: yPosition,
+        size: 11,
+        font: boldFont,
+      });
+
+      if (prescription.signature_timestamp) {
+        yPosition -= 15;
+        page.drawText(`Date & Time: ${new Date(prescription.signature_timestamp).toLocaleString()}`, {
+          x: 50,
+          y: yPosition,
+          size: 9,
+          font: font,
+        });
+      }
+
+      if (prescription.signature_ip) {
+        yPosition -= 12;
+        page.drawText(`IP Address: ${prescription.signature_ip}`, {
+          x: 50,
+          y: yPosition,
+          size: 9,
+          font: font,
+        });
+      }
+    } else {
+      page.drawText('_________________________________', {
+        x: 50,
+        y: yPosition,
+        size: 12,
+        font: font,
+      });
+
+      yPosition -= 15;
+      page.drawText('Prescriber Signature', {
+        x: 50,
+        y: yPosition,
+        size: 10,
+        font: font,
+      });
+    }
 
     page.drawText(`Status: ${prescription.status.toUpperCase()}`, {
       x: 400,
-      y: yPosition,
+      y: yPosition + 20,
       size: 10,
       font: boldFont,
     });
