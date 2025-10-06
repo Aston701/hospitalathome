@@ -57,6 +57,12 @@ serve(async (req) => {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+    
+    // Fetch and embed handwritten font for signature
+    console.log('Fetching Dancing Script font...');
+    const fontResponse = await fetch('https://fonts.gstatic.com/s/dancingscript/v24/If2cXTr6YS-zF4S-kcSWSVi_sxjsohD9F50Ruu7BMSo3Sup8.ttf');
+    const fontBytes = await fontResponse.arrayBuffer();
+    const handwrittenFont = await pdfDoc.embedFont(new Uint8Array(fontBytes));
 
     let yPosition = height - 50;
 
@@ -239,12 +245,12 @@ serve(async (req) => {
     yPosition = 180;
     
     if (prescription.signature_name) {
-      // Draw the signature name in italic (handwritten style)
+      // Draw the signature name in handwritten font
       page.drawText(prescription.signature_name, {
         x: 50,
         y: yPosition,
-        size: 24,
-        font: italicFont,
+        size: 32,
+        font: handwrittenFont,
         color: rgb(0, 0, 0),
       });
 
