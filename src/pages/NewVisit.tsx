@@ -42,6 +42,7 @@ const NewVisit = () => {
     medical_box_id: "",
     priority: "routine" as "routine" | "urgent" | "emergency",
     notes: "",
+    teams_meeting_url: "",
     useProfileAddress: true,
     alternateAddress: {
       address_line1: "",
@@ -247,6 +248,7 @@ const NewVisit = () => {
           doctor_id: formData.doctor_id || null,
           medical_box_id: formData.medical_box_id,
           notes: formData.notes || null,
+          teams_meeting_url: formData.teams_meeting_url || null,
           location_snapshot: locationSnapshot,
           status: formData.nurse_id ? "assigned" : "scheduled",
           created_by: user.id
@@ -870,6 +872,17 @@ const NewVisit = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="teams_meeting_url">Teams Meeting URL</Label>
+              <Input
+                id="teams_meeting_url"
+                type="url"
+                value={formData.teams_meeting_url}
+                onChange={(e) => handleChange("teams_meeting_url", e.target.value)}
+                placeholder="https://teams.microsoft.com/..."
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="notes">Visit Notes</Label>
               <Textarea
                 id="notes"
@@ -918,6 +931,8 @@ const NewVisit = () => {
 
 *Appointment Time:* ${formData.scheduled_time || 'Not selected'}
 
+*Teams Meeting URL:* ${formData.teams_meeting_url || 'Not provided'}
+
 *Medical Information:* ${selectedPatient?.conditions?.join(', ') || 'None recorded'}
 
 *Allergies:* ${selectedPatient?.allergies?.join(', ') || 'None recorded'}
@@ -929,7 +944,7 @@ const NewVisit = () => {
 *Assigned Medical Box:* ${medicalBoxes.find(mb => mb.id === formData.medical_box_id)?.label || 'Not assigned'}
 
 *Additional Notes:* ${formData.notes || 'None'}`}
-                rows={22}
+                rows={24}
                 className="resize-none font-mono text-sm"
               />
               <Button
@@ -962,6 +977,8 @@ const NewVisit = () => {
 *Appointment Date:* ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
 
 *Appointment Time:* ${formData.scheduled_time || 'Not selected'}
+
+*Teams Meeting URL:* ${formData.teams_meeting_url || 'Not provided'}
 
 *Medical Information:* ${selectedPatient?.conditions?.join(', ') || 'None recorded'}
 
