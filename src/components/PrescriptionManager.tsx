@@ -153,11 +153,24 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
 
       if (error) throw error;
 
+      // Generate PDF
+      const { data, error: pdfError } = await supabase.functions.invoke('generate-prescription-pdf', {
+        body: { prescriptionId }
+      });
+
+      if (pdfError) {
+        console.error('Error generating PDF:', pdfError);
+        toast({
+          title: "Warning",
+          description: "Prescription signed but PDF generation failed",
+        });
+      }
+
       fetchPrescriptions();
 
       toast({
         title: "Success",
-        description: "Prescription approved and signed",
+        description: "Prescription approved and signed. PDF generated.",
       });
     } catch (error: any) {
       toast({
@@ -274,6 +287,19 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
                 <p className="text-sm text-muted-foreground">
                   Prescribed by: Dr. {prescription.doctor.full_name}
                 </p>
+              )}
+
+              {prescription.pdf_url && (
+                <div className="mt-3">
+                  <a
+                    href={prescription.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    📄 Download PDF
+                  </a>
+                </div>
               )}
 
               {editingPrescription === prescription.id ? (
