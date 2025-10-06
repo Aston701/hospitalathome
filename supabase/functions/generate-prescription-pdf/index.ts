@@ -56,6 +56,7 @@ serve(async (req) => {
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
     let yPosition = height - 50;
 
@@ -235,9 +236,19 @@ serve(async (req) => {
     });
 
     // Footer with signature
-    yPosition = 150;
+    yPosition = 180;
     
     if (prescription.signature_name) {
+      // Draw the signature name in italic (handwritten style)
+      page.drawText(prescription.signature_name, {
+        x: 50,
+        y: yPosition,
+        size: 24,
+        font: italicFont,
+        color: rgb(0, 0, 0),
+      });
+
+      yPosition -= 10;
       page.drawText('_________________________________', {
         x: 50,
         y: yPosition,
@@ -246,15 +257,15 @@ serve(async (req) => {
       });
 
       yPosition -= 15;
-      page.drawText(`Digitally Signed by: ${prescription.signature_name}`, {
+      page.drawText('Digitally Signed', {
         x: 50,
         y: yPosition,
-        size: 11,
-        font: boldFont,
+        size: 9,
+        font: font,
       });
 
       if (prescription.signature_timestamp) {
-        yPosition -= 15;
+        yPosition -= 12;
         page.drawText(`Date & Time: ${new Date(prescription.signature_timestamp).toLocaleString()}`, {
           x: 50,
           y: yPosition,
@@ -291,7 +302,7 @@ serve(async (req) => {
 
     page.drawText(`Status: ${prescription.status.toUpperCase()}`, {
       x: 400,
-      y: yPosition + 20,
+      y: 180,
       size: 10,
       font: boldFont,
     });
