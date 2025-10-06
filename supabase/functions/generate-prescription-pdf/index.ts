@@ -67,8 +67,8 @@ serve(async (req) => {
     let handwrittenFont;
     try {
       console.log('Fetching handwritten font...');
-      // Using Caveat font - a reliable handwritten font for pdf-lib
-      const fontUrl = 'https://github.com/google/fonts/raw/main/ofl/caveat/Caveat-Regular.ttf';
+      // Using Caveat font from jsDelivr CDN - more reliable than GitHub raw
+      const fontUrl = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/caveat/Caveat-Regular.ttf';
       const fontResponse = await fetch(fontUrl);
       
       if (!fontResponse.ok) {
