@@ -53,7 +53,7 @@ const Roster = () => {
       .from("shifts")
       .select(`
         *,
-        profiles!shifts_user_id_fkey (
+        profiles(
           id,
           full_name,
           role
@@ -65,6 +65,7 @@ const Roster = () => {
 
     if (error) {
       toast.error("Failed to load shifts");
+      console.error(error);
       return;
     }
 
