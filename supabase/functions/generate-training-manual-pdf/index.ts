@@ -372,7 +372,7 @@ Handling Urgent Requests
 MONITORING VISIT PROGRESS
 
 Normal Flow:
-Scheduled → Assigned → En Route → On Site → Completed
+Scheduled > Assigned > En Route > On Site > Completed
 
 Warning Signs:
 • Visit stuck in one status too long
@@ -638,7 +638,7 @@ serve(async (req) => {
 
     const pdfBytes = await pdfDoc.save();
 
-    return new Response(pdfBytes, {
+    return new Response(pdfBytes as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
@@ -648,7 +648,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error generating PDF:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
