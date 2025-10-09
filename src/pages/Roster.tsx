@@ -49,27 +49,50 @@ const Roster = () => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
 
-    const { data, error } = await supabase
+    // Fetch shifts
+    const { data: shiftsData, error: shiftsError } = await supabase
       .from("shifts")
-      .select(`
-        *,
-        profiles(
-          id,
-          full_name,
-          role
-        )
-      `)
+      .select("*")
       .gte("shift_start", start.toISOString())
       .lte("shift_end", end.toISOString())
       .order("shift_start");
 
-    if (error) {
+    if (shiftsError) {
       toast.error("Failed to load shifts");
-      console.error(error);
+      console.error(shiftsError);
       return;
     }
 
-    setShifts(data as any || []);
+    if (!shiftsData || shiftsData.length === 0) {
+      setShifts([]);
+      return;
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(shiftsData.map(s => s.user_id))];
+
+    // Fetch profiles for those users
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, full_name, role")
+      .in("id", userIds);
+
+    if (profilesError) {
+      toast.error("Failed to load staff profiles");
+      console.error(profilesError);
+      return;
+    }
+
+    // Create a map of profiles by ID
+    const profileMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+
+    // Combine shifts with profiles
+    const shiftsWithProfiles = shiftsData.map(shift => ({
+      ...shift,
+      profiles: profileMap.get(shift.user_id) || { id: shift.user_id, full_name: "Unknown", role: "unknown" }
+    }));
+
+    setShifts(shiftsWithProfiles as any);
   };
 
   const fetchProfiles = async () => {
