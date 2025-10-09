@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, ChevronLeft, ChevronRight, Plus, User } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Plus, User, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
+import * as XLSX from "xlsx";
 
 interface Profile {
   id: string;
@@ -184,6 +185,34 @@ const Roster = () => {
     return role === "doctor" ? "bg-green-600" : "bg-cyan-600";
   };
 
+  const exportToExcel = () => {
+    // Prepare data for Excel export
+    const exportData = shifts.map(shift => ({
+      'Staff Member': shift.profiles.full_name,
+      'Role': shift.profiles.role,
+      'Date': format(new Date(shift.shift_start), 'dd/MM/yyyy'),
+      'Shift Type': shift.shift_type,
+      'Start Time': format(new Date(shift.shift_start), 'HH:mm'),
+      'End Time': format(new Date(shift.shift_end), 'HH:mm'),
+      'Notes': shift.notes || ''
+    }));
+
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Roster');
+    
+    // Generate filename with current month
+    const filename = `Roster_${format(currentMonth, 'MMMM_yyyy')}.xlsx`;
+    
+    // Save file
+    XLSX.writeFile(wb, filename);
+    
+    toast.success("Roster exported to Excel");
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -192,13 +221,18 @@ const Roster = () => {
           <h1 className="text-3xl font-bold">Staff Roster</h1>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Shift
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToExcel}>
+            <Download className="h-4 w-4 mr-2" />
+            Export to Excel
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Shift
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Shift</DialogTitle>
@@ -282,6 +316,7 @@ const Roster = () => {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
 
       {/* Month Navigation */}
       <div className="flex items-center justify-between bg-card p-4 rounded-lg border">
