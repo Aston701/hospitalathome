@@ -24,10 +24,10 @@ Logging In
 DASHBOARD
 
 The Dashboard provides an overview of:
-• Today's Visits: Total visits scheduled for today
-• Completed Visits: Number of completed visits today
-• Total Patients: Total number of patients in the system
-• Urgent Requests: Number of urgent visit requests
+- Today's Visits: Total visits scheduled for today
+- Completed Visits: Number of completed visits today
+- Total Patients: Total number of patients in the system
+- Urgent Requests: Number of urgent visit requests
 
 MANAGING PATIENTS
 
@@ -62,10 +62,10 @@ Dispatch Board
 
 MANAGING PRESCRIPTIONS
 
-• View all prescriptions
-• Monitor prescription approval status
-• Generate PDF copies of approved prescriptions
-• Track which doctor created and approved each prescription
+- View all prescriptions
+- Monitor prescription approval status
+- Generate PDF copies of approved prescriptions
+- Track which doctor created and approved each prescription
 
 USER MANAGEMENT
 
@@ -79,14 +79,14 @@ Adding New Users
 BEST PRACTICES
 
 Security
-• Never share your admin credentials
-• Regularly review user access levels
-• Use strong passwords
+- Never share your admin credentials
+- Regularly review user access levels
+- Use strong passwords
 
 Patient Privacy
-• Always verify patient identity
-• Log out when leaving your workstation
-• Follow HIPAA compliance guidelines
+- Always verify patient identity
+- Log out when leaving your workstation
+- Follow HIPAA compliance guidelines
 
 For support, contact IT Help Desk`,
 
@@ -106,10 +106,10 @@ Logging In
 DASHBOARD
 
 The Dashboard provides an overview of:
-• Today's Visits: Total visits scheduled for today
-• Completed Visits: Number of completed visits today
-• Total Patients: Total number of patients
-• Urgent Requests: Number of urgent visit requests
+- Today's Visits: Total visits scheduled for today
+- Completed Visits: Number of completed visits today
+- Total Patients: Total number of patients
+- Urgent Requests: Number of urgent visit requests
 
 MANAGING PRESCRIPTIONS
 
@@ -133,31 +133,31 @@ Approving and Signing Prescriptions
 6. PDF is automatically generated
 
 Important Notes
-• Only doctors can create and approve prescriptions
-• Approved prescriptions cannot be edited
-• Create a new prescription if changes are needed
-• Your signature is legally binding
+- Only doctors can create and approve prescriptions
+- Approved prescriptions cannot be edited
+- Create a new prescription if changes are needed
+- Your signature is legally binding
 
 REVIEWING PATIENTS
 
 Patient Profile Includes
-• Personal information
-• Medical conditions
-• Current medications
-• Known allergies (Always check!)
-• Previous visit history
-• Historical vital signs
-• Previous prescriptions
+- Personal information
+- Medical conditions
+- Current medications
+- Known allergies (Always check!)
+- Previous visit history
+- Historical vital signs
+- Previous prescriptions
 
 REVIEWING VISITS
 
 Visit Status Guide
-• Scheduled: Visit scheduled, nurse may not be assigned
-• Assigned: Nurse has been assigned
-• En Route: Nurse traveling to patient
-• On Site: Nurse currently with patient
-• In Telemed: Telemedicine session active
-• Completed: Visit concluded
+- Scheduled: Visit scheduled, nurse may not be assigned
+- Assigned: Nurse has been assigned
+- En Route: Nurse traveling to patient
+- On Site: Nurse currently with patient
+- In Telemed: Telemedicine session active
+- Completed: Visit concluded
 
 BEST PRACTICES
 
@@ -201,19 +201,19 @@ Logging In
 YOUR WORKSPACE - VISITS PAGE
 
 When you log in, you'll see:
-• All assigned visits for the day
-• Visit status for each patient
-• Scheduled times
-• Patient addresses for home visits
+- All assigned visits for the day
+- Visit status for each patient
+- Scheduled times
+- Patient addresses for home visits
 
 UNDERSTANDING VISIT STATUS
 
-• Scheduled: Visit on your schedule, not yet started
-• Assigned: Visit assigned to you
-• En Route: Traveling to patient
-• On Site: At patient location
-• In Telemed: Telemedicine session active
-• Completed: Visit finished and documented
+- Scheduled: Visit on your schedule, not yet started
+- Assigned: Visit assigned to you
+- En Route: Traveling to patient
+- On Site: At patient location
+- In Telemed: Telemedicine session active
+- Completed: Visit finished and documented
 
 CONDUCTING A VISIT
 
@@ -246,12 +246,12 @@ Completing the Visit
 RECORDING VITAL SIGNS
 
 Best Practices
-• Blood Pressure: Patient seated, relaxed 5 minutes
-• Heart Rate: Count for full 60 seconds
-• Temperature: Specify method used
-• Respiratory Rate: Observe for 60 seconds
-• Oxygen Saturation: Ensure finger warm and clean
-• Blood Glucose: Note time of last meal
+- Blood Pressure: Patient seated, relaxed 5 minutes
+- Heart Rate: Count for full 60 seconds
+- Temperature: Specify method used
+- Respiratory Rate: Observe for 60 seconds
+- Oxygen Saturation: Ensure finger warm and clean
+- Blood Glucose: Note time of last meal
 
 TELEMEDICINE VISITS
 
@@ -265,11 +265,11 @@ TELEMEDICINE VISITS
 EMERGENCY SITUATIONS
 
 When to Call 911
-• Patient unresponsive
-• Chest pain or difficulty breathing
-• Severe bleeding
-• Signs of stroke
-• Any life-threatening situation
+- Patient unresponsive
+- Chest pain or difficulty breathing
+- Severe bleeding
+- Signs of stroke
+- Any life-threatening situation
 
 Procedure
 1. Call 911 immediately
@@ -281,16 +281,16 @@ Procedure
 BEST PRACTICES
 
 Patient Care
-• Always verify patient identity
-• Check allergies before administering anything
-• Follow infection control protocols
-• Respect patient privacy
+- Always verify patient identity
+- Check allergies before administering anything
+- Follow infection control protocols
+- Respect patient privacy
 
 Safety First
-• Use proper PPE when required
-• Never guess at measurements
-• Record vitals immediately
-• Document accurately
+- Use proper PPE when required
+- Never guess at measurements
+- Record vitals immediately
+- Document accurately
 
 For clinical questions, contact on-call doctor
 For technical support, contact Control Room`,
@@ -329,10 +329,10 @@ Your mission control center with 4 main columns:
    - Action: Monitor visit progress
 
 Real-Time Updates
-• Board updates automatically
-• New visits appear instantly
-• Completed visits move off board
-• Color-coded for quick scanning
+- Board updates automatically
+- New visits appear instantly
+- Completed visits move off board
+- Color-coded for quick scanning
 
 MANAGING VISITS
 
@@ -350,10 +350,10 @@ Creating a New Visit
 
 Reassigning Visits
 When to Reassign:
-• Nurse calls in sick
-• Emergency situations
-• Visit running late
-• Nurse requests assistance
+- Nurse calls in sick
+- Emergency situations
+- Visit running late
+- Nurse requests assistance
 
 How to Reassign:
 1. Access visit from board
@@ -375,16 +375,16 @@ Normal Flow:
 Scheduled > Assigned > En Route > On Site > Completed
 
 Warning Signs:
-• Visit stuck in one status too long
-• Scheduled but not assigned after 30 minutes
-• En Route longer than expected
-• On Site unusually long
+- Visit stuck in one status too long
+- Scheduled but not assigned after 30 minutes
+- En Route longer than expected
+- On Site unusually long
 
 Action Required:
-• Contact assigned nurse
-• Check for issues
-• Reassign if necessary
-• Update patient if delayed
+- Contact assigned nurse
+- Check for issues
+- Reassign if necessary
+- Update patient if delayed
 
 SCHEDULING AND COORDINATION
 
@@ -395,10 +395,10 @@ Daily Schedule Management
 4. Plan for coverage
 
 Route Optimization
-• Assign nurses to same geographic area
-• Minimize travel time
-• Consider traffic patterns
-• Balance workload
+- Assign nurses to same geographic area
+- Minimize travel time
+- Consider traffic patterns
+- Balance workload
 
 HANDLING SPECIAL SITUATIONS
 
@@ -420,30 +420,30 @@ When Patient Calls Emergency:
 6. Schedule follow-up
 
 Technical Issues
-• Document visits manually
-• Use phone communication
-• Enter data when system returns
-• Report to IT
+- Document visits manually
+- Use phone communication
+- Enter data when system returns
+- Report to IT
 
 BEST PRACTICES
 
 Communication Excellence
-• Be clear and concise
-• Respond promptly
-• Proactive updates
-• Professional language
+- Be clear and concise
+- Respond promptly
+- Proactive updates
+- Professional language
 
 Operational Efficiency
-• Stay organized
-• Anticipate issues
-• Have backup plans
-• Monitor weather/traffic
+- Stay organized
+- Anticipate issues
+- Have backup plans
+- Monitor weather/traffic
 
 Quality Assurance
-• Verify information accuracy
-• Ensure proper documentation
-• Monitor incomplete visits
-• Follow up on outstanding items
+- Verify information accuracy
+- Ensure proper documentation
+- Monitor incomplete visits
+- Follow up on outstanding items
 
 DAILY CHECKLIST
 
@@ -534,7 +534,7 @@ serve(async (req) => {
       }
 
       // Headers (all caps)
-      if (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 0 && !trimmedLine.startsWith('•')) {
+      if (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 0 && !trimmedLine.startsWith('-')) {
         yPosition -= 5;
         page.drawText(trimmedLine, {
           x: margin,
@@ -548,8 +548,8 @@ serve(async (req) => {
       }
 
       // Bullet points or numbered lists
-      if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || /^\d+\./.test(trimmedLine)) {
-        const text = trimmedLine.replace(/^[•\-]/, '  •').replace(/^(\d+\.)/, '  $1');
+      if (trimmedLine.startsWith('-') || /^\d+\./.test(trimmedLine)) {
+        const text = trimmedLine.replace(/^-/, '  -').replace(/^(\d+\.)/, '  $1');
         const words = text.split(' ');
         let currentLine = '';
         
