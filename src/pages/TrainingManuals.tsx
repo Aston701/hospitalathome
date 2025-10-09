@@ -39,14 +39,32 @@ const TrainingManuals = () => {
   const handleDownload = async (role: string, title: string) => {
     setDownloading(role);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-training-manual-pdf', {
-        body: { role }
-      });
+      // Get the current session to include auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session');
+      }
 
-      if (error) throw error;
+      // Fetch the PDF directly as a blob
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-training-manual-pdf`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ role }),
+        }
+      );
 
-      // The data is already a Blob from the edge function
-      const url = window.URL.createObjectURL(data);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${role}-training-manual.pdf`;
