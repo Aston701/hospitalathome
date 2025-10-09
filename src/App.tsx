@@ -16,6 +16,7 @@ import Dispatch from "./pages/Dispatch";
 import Prescriptions from "./pages/Prescriptions";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import TrainingManuals from "./pages/TrainingManuals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const App = () => (
             </ProtectedRoute>
           } />
           <Route path="settings" element={<Settings />} />
+          <Route path="training" element={<TrainingManuals />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

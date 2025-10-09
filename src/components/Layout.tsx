@@ -12,7 +12,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  BookOpen
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -71,6 +72,7 @@ const Layout = () => {
   const navItems = profile?.role === "nurse" 
     ? [
         { icon: Calendar, label: "My Visits", path: "/visits" },
+        { icon: BookOpen, label: "Training", path: "/training" },
       ]
     : [
         { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -79,6 +81,7 @@ const Layout = () => {
         { icon: MapPin, label: "Dispatch", path: "/dispatch" },
         { icon: FileText, label: "Prescriptions", path: "/prescriptions" },
         ...(profile?.role === "admin" ? [{ icon: Settings, label: "Users", path: "/users" }] : []),
+        { icon: BookOpen, label: "Training", path: "/training" },
       ];
 
   const isActive = (path: string) => location.pathname === path;
