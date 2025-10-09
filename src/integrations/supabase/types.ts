@@ -404,6 +404,45 @@ export type Database = {
           },
         ]
       }
+      shifts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          org_id: string
+          shift_end: string
+          shift_start: string
+          shift_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          org_id?: string
+          shift_end: string
+          shift_start: string
+          shift_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          org_id?: string
+          shift_end?: string
+          shift_start?: string
+          shift_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telehealth_sessions: {
         Row: {
           artifacts: Json | null

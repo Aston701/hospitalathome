@@ -17,6 +17,7 @@ import Prescriptions from "./pages/Prescriptions";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import TrainingManuals from "./pages/TrainingManuals";
+import Roster from "./pages/Roster";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,11 @@ const App = () => (
           <Route path="prescriptions" element={
             <ProtectedRoute allowedRoles={["admin", "control_room", "doctor"]}>
               <Prescriptions />
+            </ProtectedRoute>
+          } />
+          <Route path="roster" element={
+            <ProtectedRoute allowedRoles={["admin", "control_room"]}>
+              <Roster />
             </ProtectedRoute>
           } />
           <Route path="users" element={
