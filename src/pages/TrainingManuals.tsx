@@ -45,9 +45,8 @@ const TrainingManuals = () => {
 
       if (error) throw error;
 
-      // Create blob URL and trigger download
-      const blob = new Blob([data as Blob], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
+      // The data is already a Blob from the edge function
+      const url = window.URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${role}-training-manual.pdf`;
