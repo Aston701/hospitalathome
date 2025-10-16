@@ -1,0 +1,181 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Download } from "lucide-react";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+
+interface MedicalDocumentsDisplayProps {
+  visitId: string;
+}
+
+export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProps) {
+  const [diagnosticRequests, setDiagnosticRequests] = useState<any[]>([]);
+  const [sickNotes, setSickNotes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [visitId]);
+
+  const fetchDocuments = async () => {
+    try {
+      const [diagRes, sickRes] = await Promise.all([
+        supabase
+          .from("diagnostic_requests")
+          .select("*, requested_by_profile:requested_by(full_name)")
+          .eq("visit_id", visitId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("sick_notes")
+          .select("*, issued_by_profile:issued_by(full_name)")
+          .eq("visit_id", visitId)
+          .order("created_at", { ascending: false }),
+      ]);
+
+      setDiagnosticRequests(diagRes.data || []);
+      setSickNotes(sickRes.data || []);
+    } catch (error) {
+      console.error("Error fetching medical documents:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-sm text-muted-foreground">Loading documents...</div>;
+  }
+
+  if (diagnosticRequests.length === 0 && sickNotes.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      {diagnosticRequests.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Diagnostic Test Requests</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {diagnosticRequests.map((request) => (
+              <div key={request.id} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        Requested by: {request.requested_by_profile?.full_name || "Unknown"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(request.created_at), "PPp")}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant={request.status === "pending" ? "outline" : "secondary"}>
+                    {request.status}
+                  </Badge>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium mb-2">Tests Requested:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(request.tests_requested) &&
+                      request.tests_requested.map((test: any, idx: number) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {test.label}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+
+                {request.clinical_notes && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Clinical Notes:</p>
+                    <p className="text-sm text-muted-foreground">{request.clinical_notes}</p>
+                  </div>
+                )}
+
+                {request.pdf_url && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={request.pdf_url} download>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </a>
+                  </Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {sickNotes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Sick Notes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {sickNotes.map((note) => (
+              <div key={note.id} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        Issued by: {note.issued_by_profile?.full_name || "Unknown"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(note.created_at), "PPp")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Diagnosis:</p>
+                    <p className="font-medium">{note.diagnosis}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Duration:</p>
+                    <p className="font-medium">{note.days_duration} days</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Start Date:</p>
+                    <p className="font-medium">
+                      {format(new Date(note.start_date), "PP")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">End Date:</p>
+                    <p className="font-medium">
+                      {format(new Date(note.end_date), "PP")}
+                    </p>
+                  </div>
+                </div>
+
+                {note.additional_notes && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Additional Notes:</p>
+                    <p className="text-sm text-muted-foreground">{note.additional_notes}</p>
+                  </div>
+                )}
+
+                {note.pdf_url && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={note.pdf_url} download>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </a>
+                  </Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

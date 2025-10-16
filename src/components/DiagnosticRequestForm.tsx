@@ -82,6 +82,9 @@ export function DiagnosticRequestForm({
       setIsOpen(false);
       setSelectedTests([]);
       setClinicalNotes("");
+      
+      // Refresh the page to show the new request
+      window.location.reload();
     } catch (error) {
       console.error("Error creating diagnostic request:", error);
       toast.error("Failed to create diagnostic request");

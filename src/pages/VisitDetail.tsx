@@ -22,6 +22,7 @@ import VitalsDisplay from "@/components/VitalsDisplay";
 import PrescriptionManager from "@/components/PrescriptionManager";
 import { DiagnosticRequestForm } from "@/components/DiagnosticRequestForm";
 import { SickNoteForm } from "@/components/SickNoteForm";
+import { MedicalDocumentsDisplay } from "@/components/MedicalDocumentsDisplay";
 
 type VisitStatus = Database["public"]["Enums"]["visit_status"];
 
@@ -618,7 +619,7 @@ const VisitDetail = () => {
           <CardTitle>Medical Documents</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 mb-6">
             <DiagnosticRequestForm
               visitId={visit.id}
               patientId={visit.patient_id}
@@ -642,6 +643,7 @@ const VisitDetail = () => {
               }
             />
           </div>
+          <MedicalDocumentsDisplay visitId={visit.id} />
         </CardContent>
       </Card>
 

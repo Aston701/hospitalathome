@@ -78,6 +78,9 @@ export function SickNoteForm({
       setStartDate(undefined);
       setEndDate(undefined);
       setAdditionalNotes("");
+      
+      // Refresh the page to show the new sick note
+      window.location.reload();
     } catch (error) {
       console.error("Error creating sick note:", error);
       toast.error("Failed to create sick note");
