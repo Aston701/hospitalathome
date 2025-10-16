@@ -20,6 +20,8 @@ import VisitTimeline from "@/components/VisitTimeline";
 import VitalsUpload from "@/components/VitalsUpload";
 import VitalsDisplay from "@/components/VitalsDisplay";
 import PrescriptionManager from "@/components/PrescriptionManager";
+import { DiagnosticRequestForm } from "@/components/DiagnosticRequestForm";
+import { SickNoteForm } from "@/components/SickNoteForm";
 
 type VisitStatus = Database["public"]["Enums"]["visit_status"];
 
@@ -610,6 +612,38 @@ const VisitDetail = () => {
         userRole={userRole || ""} 
         currentUserId={currentUserId || ""} 
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Medical Documents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <DiagnosticRequestForm
+              visitId={visit.id}
+              patientId={visit.patient_id}
+              patientName={`${visit.patient?.first_name} ${visit.patient?.last_name}`}
+              canCreate={
+                (userRole === "doctor" && visit.doctor_id === currentUserId) ||
+                (userRole === "nurse" && visit.nurse_id === currentUserId) ||
+                userRole === "admin" ||
+                userRole === "control_room"
+              }
+            />
+            <SickNoteForm
+              visitId={visit.id}
+              patientId={visit.patient_id}
+              patientName={`${visit.patient?.first_name} ${visit.patient?.last_name}`}
+              canCreate={
+                (userRole === "doctor" && visit.doctor_id === currentUserId) ||
+                (userRole === "nurse" && visit.nurse_id === currentUserId) ||
+                userRole === "admin" ||
+                userRole === "control_room"
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {visit.notes && (
         <Card>

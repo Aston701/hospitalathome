@@ -61,6 +61,60 @@ export type Database = {
           },
         ]
       }
+      diagnostic_requests: {
+        Row: {
+          clinical_notes: string | null
+          created_at: string
+          id: string
+          patient_id: string
+          pdf_url: string | null
+          requested_by: string
+          status: string
+          tests_requested: Json
+          updated_at: string
+          visit_id: string
+        }
+        Insert: {
+          clinical_notes?: string | null
+          created_at?: string
+          id?: string
+          patient_id: string
+          pdf_url?: string | null
+          requested_by: string
+          status?: string
+          tests_requested?: Json
+          updated_at?: string
+          visit_id: string
+        }
+        Update: {
+          clinical_notes?: string | null
+          created_at?: string
+          id?: string
+          patient_id?: string
+          pdf_url?: string | null
+          requested_by?: string
+          status?: string
+          tests_requested?: Json
+          updated_at?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_requests_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnostic_requests_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispatch_events: {
         Row: {
           created_at: string
@@ -442,6 +496,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sick_notes: {
+        Row: {
+          additional_notes: string | null
+          created_at: string
+          days_duration: number
+          diagnosis: string
+          end_date: string
+          id: string
+          issued_by: string
+          patient_id: string
+          pdf_url: string | null
+          start_date: string
+          updated_at: string
+          visit_id: string
+        }
+        Insert: {
+          additional_notes?: string | null
+          created_at?: string
+          days_duration: number
+          diagnosis: string
+          end_date: string
+          id?: string
+          issued_by: string
+          patient_id: string
+          pdf_url?: string | null
+          start_date: string
+          updated_at?: string
+          visit_id: string
+        }
+        Update: {
+          additional_notes?: string | null
+          created_at?: string
+          days_duration?: number
+          diagnosis?: string
+          end_date?: string
+          id?: string
+          issued_by?: string
+          patient_id?: string
+          pdf_url?: string | null
+          start_date?: string
+          updated_at?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sick_notes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sick_notes_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telehealth_sessions: {
         Row: {
