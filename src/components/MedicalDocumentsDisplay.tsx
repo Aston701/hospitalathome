@@ -24,18 +24,46 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
       const [diagRes, sickRes] = await Promise.all([
         supabase
           .from("diagnostic_requests")
-          .select("*, requested_by_profile:requested_by(full_name)")
+          .select("*")
           .eq("visit_id", visitId)
           .order("created_at", { ascending: false }),
         supabase
           .from("sick_notes")
-          .select("*, issued_by_profile:issued_by(full_name)")
+          .select("*")
           .eq("visit_id", visitId)
           .order("created_at", { ascending: false }),
       ]);
 
-      setDiagnosticRequests(diagRes.data || []);
-      setSickNotes(sickRes.data || []);
+      // Fetch user profiles for the requests
+      const diagUserIds = diagRes.data?.map(d => d.requested_by).filter(Boolean) || [];
+      const sickUserIds = sickRes.data?.map(s => s.issued_by).filter(Boolean) || [];
+      const allUserIds = [...new Set([...diagUserIds, ...sickUserIds])];
+
+      let userProfiles: Record<string, any> = {};
+      if (allUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", allUserIds);
+        
+        profiles?.forEach(p => {
+          userProfiles[p.id] = p;
+        });
+      }
+
+      // Attach profile data to requests
+      const diagWithProfiles = diagRes.data?.map(d => ({
+        ...d,
+        requested_by_profile: userProfiles[d.requested_by]
+      })) || [];
+
+      const sickWithProfiles = sickRes.data?.map(s => ({
+        ...s,
+        issued_by_profile: userProfiles[s.issued_by]
+      })) || [];
+
+      setDiagnosticRequests(diagWithProfiles);
+      setSickNotes(sickWithProfiles);
     } catch (error) {
       console.error("Error fetching medical documents:", error);
     } finally {
