@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface MedicalDocumentsDisplayProps {
   visitId: string;
@@ -14,6 +15,7 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
   const [diagnosticRequests, setDiagnosticRequests] = useState<any[]>([]);
   const [sickNotes, setSickNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -68,6 +70,38 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
       console.error("Error fetching medical documents:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadSickNote = async (sickNoteId: string, existingPdfUrl: string | null) => {
+    try {
+      setGeneratingPdf(sickNoteId);
+
+      // If PDF already exists, download it directly
+      if (existingPdfUrl) {
+        window.open(existingPdfUrl, '_blank');
+        return;
+      }
+
+      // Generate new PDF
+      const { data, error } = await supabase.functions.invoke('generate-sick-note-pdf', {
+        body: { sickNoteId }
+      });
+
+      if (error) throw error;
+
+      if (data.pdf_url) {
+        toast.success("Sick note PDF generated successfully");
+        // Refresh the sick notes to show the new PDF URL
+        fetchDocuments();
+        // Download the PDF
+        window.open(data.pdf_url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error generating sick note PDF:', error);
+      toast.error("Failed to generate sick note PDF");
+    } finally {
+      setGeneratingPdf(null);
     }
   };
 
@@ -191,14 +225,24 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
                   </div>
                 )}
 
-                {note.pdf_url && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={note.pdf_url} download>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleDownloadSickNote(note.id, note.pdf_url)}
+                  disabled={generatingPdf === note.id}
+                >
+                  {generatingPdf === note.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
                       <Download className="h-4 w-4 mr-2" />
-                      Download PDF
-                    </a>
-                  </Button>
-                )}
+                      {note.pdf_url ? 'Download PDF' : 'Generate PDF'}
+                    </>
+                  )}
+                </Button>
               </div>
             ))}
           </CardContent>
