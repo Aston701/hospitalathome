@@ -25,13 +25,12 @@ serve(async (req) => {
 
     console.log('Generating PDF for sick note:', sickNoteId);
 
-    // Fetch sick note with related data
+    // Fetch sick note with related data (without invalid foreign key joins)
     const { data: sickNote, error: fetchError } = await supabase
       .from('sick_notes')
       .select(`
         *,
         patient:patients(first_name, last_name, sa_id_number, date_of_birth),
-        issuer:issued_by(id),
         visit:visits(scheduled_start)
       `)
       .eq('id', sickNoteId)
