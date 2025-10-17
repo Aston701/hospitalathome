@@ -36,6 +36,13 @@ serve(async (req) => {
     if (fetchError) throw fetchError;
     if (!sickNote) throw new Error('Sick note not found');
 
+    console.log('Sick note data:', {
+      id: sickNote.id,
+      status: sickNote.status,
+      signature_name: sickNote.signature_name,
+      signature_timestamp: sickNote.signature_timestamp
+    });
+
     // Fetch patient data separately
     const { data: patient } = await supabase
       .from('patients')

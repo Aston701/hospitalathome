@@ -108,11 +108,15 @@ export function SickNoteManager({ visitId, userRole }: SickNoteManagerProps) {
     }
   };
 
-  const handleDownloadSickNote = async (sickNoteId: string, existingPdfUrl: string | null) => {
+  const handleDownloadSickNote = async (sickNoteId: string, existingPdfUrl: string | null, signatureTimestamp: string | null) => {
     try {
       setGeneratingPdf(sickNoteId);
 
-      if (existingPdfUrl) {
+      // If there's an existing PDF but it was generated before signing, regenerate it
+      const shouldRegenerate = existingPdfUrl && signatureTimestamp && 
+        new Date(existingPdfUrl.split('_').pop()?.split('.')[0] || 0).getTime() < new Date(signatureTimestamp).getTime();
+
+      if (existingPdfUrl && !shouldRegenerate) {
         window.open(existingPdfUrl, '_blank');
         return;
       }
@@ -238,7 +242,7 @@ export function SickNoteManager({ visitId, userRole }: SickNoteManagerProps) {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => handleDownloadSickNote(note.id, note.pdf_url)}
+                    onClick={() => handleDownloadSickNote(note.id, note.pdf_url, note.signature_timestamp)}
                     disabled={generatingPdf === note.id}
                   >
                     {generatingPdf === note.id ? (
