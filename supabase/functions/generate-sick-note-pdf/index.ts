@@ -254,6 +254,15 @@ serve(async (req) => {
     }
 
     // Signature Section
+    page.drawText('AUTHORIZED SIGNATURE', {
+      x: 50,
+      y: yPosition,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+    yPosition -= 20;
+
     page.drawText(`Issued By: ${doctorProfile?.full_name || 'Medical Professional'}`, {
       x: 70,
       y: yPosition,
@@ -272,7 +281,35 @@ serve(async (req) => {
       yPosition -= 15;
     }
 
-    yPosition -= 40;
+    if (sickNote.signature_name) {
+      yPosition -= 10;
+      page.drawText(`Signed By: ${sickNote.signature_name}`, {
+        x: 70,
+        y: yPosition,
+        size: 10,
+        font: boldFont,
+      });
+      yPosition -= 15;
+    }
+
+    if (sickNote.signature_timestamp) {
+      const signatureDate = new Date(sickNote.signature_timestamp).toLocaleDateString('en-ZA', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      page.drawText(`Signature Date: ${signatureDate}`, {
+        x: 70,
+        y: yPosition,
+        size: 10,
+        font: font,
+      });
+      yPosition -= 15;
+    }
+
+    yPosition -= 20;
     page.drawLine({
       start: { x: 70, y: yPosition },
       end: { x: 300, y: yPosition },
