@@ -23,6 +23,8 @@ import PrescriptionManager from "@/components/PrescriptionManager";
 import { DiagnosticRequestForm } from "@/components/DiagnosticRequestForm";
 import { SickNoteForm } from "@/components/SickNoteForm";
 import { SickNoteManager } from "@/components/SickNoteManager";
+import { ConsultationNotesForm } from "@/components/ConsultationNotesForm";
+import { ConsultationNotesList } from "@/components/ConsultationNotesList";
 import { MedicalDocumentsDisplay } from "@/components/MedicalDocumentsDisplay";
 
 type VisitStatus = Database["public"]["Enums"]["visit_status"];
@@ -619,6 +621,15 @@ const VisitDetail = () => {
         visitId={visit.id}
         userRole={userRole || ""}
       />
+
+      <ConsultationNotesList visitId={visit.id} />
+
+      {(userRole === "doctor" || userRole === "nurse") && (
+        <ConsultationNotesForm 
+          visitId={visit.id} 
+          onSuccess={() => fetchVisit()} 
+        />
+      )}
 
       <Card>
         <CardHeader>

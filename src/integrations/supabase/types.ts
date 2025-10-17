@@ -61,6 +61,77 @@ export type Database = {
           },
         ]
       }
+      consultation_notes: {
+        Row: {
+          additional_notes: string | null
+          assessment: string | null
+          chief_complaint: string | null
+          created_at: string
+          created_by: string
+          current_medications: string | null
+          diagnosis: string | null
+          follow_up_instructions: string | null
+          history_present_illness: string | null
+          id: string
+          note_type: string
+          past_medical_history: string | null
+          physical_examination: string | null
+          prescriptions_notes: string | null
+          treatment_plan: string | null
+          updated_at: string
+          visit_id: string
+          vital_signs_notes: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          assessment?: string | null
+          chief_complaint?: string | null
+          created_at?: string
+          created_by: string
+          current_medications?: string | null
+          diagnosis?: string | null
+          follow_up_instructions?: string | null
+          history_present_illness?: string | null
+          id?: string
+          note_type?: string
+          past_medical_history?: string | null
+          physical_examination?: string | null
+          prescriptions_notes?: string | null
+          treatment_plan?: string | null
+          updated_at?: string
+          visit_id: string
+          vital_signs_notes?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          assessment?: string | null
+          chief_complaint?: string | null
+          created_at?: string
+          created_by?: string
+          current_medications?: string | null
+          diagnosis?: string | null
+          follow_up_instructions?: string | null
+          history_present_illness?: string | null
+          id?: string
+          note_type?: string
+          past_medical_history?: string | null
+          physical_examination?: string | null
+          prescriptions_notes?: string | null
+          treatment_plan?: string | null
+          updated_at?: string
+          visit_id?: string
+          vital_signs_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_notes_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostic_requests: {
         Row: {
           clinical_notes: string | null
