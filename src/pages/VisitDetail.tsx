@@ -38,6 +38,7 @@ const VisitDetail = () => {
   const [updating, setUpdating] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [nurses, setNurses] = useState<any[]>([]);
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
@@ -622,12 +623,12 @@ const VisitDetail = () => {
         userRole={userRole || ""}
       />
 
-      <ConsultationNotesList visitId={visit.id} />
+      <ConsultationNotesList visitId={visit.id} refreshTrigger={notesRefreshTrigger} />
 
       {(userRole === "doctor" || userRole === "nurse") && (
         <ConsultationNotesForm 
           visitId={visit.id} 
-          onSuccess={() => fetchVisit()} 
+          onSuccess={() => setNotesRefreshTrigger(prev => prev + 1)} 
         />
       )}
 

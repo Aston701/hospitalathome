@@ -8,15 +8,16 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 interface ConsultationNotesListProps {
   visitId: string;
+  refreshTrigger?: number;
 }
 
-export function ConsultationNotesList({ visitId }: ConsultationNotesListProps) {
+export function ConsultationNotesList({ visitId, refreshTrigger }: ConsultationNotesListProps) {
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchNotes();
-  }, [visitId]);
+  }, [visitId, refreshTrigger]);
 
   const fetchNotes = async () => {
     try {
