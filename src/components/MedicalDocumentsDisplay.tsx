@@ -193,6 +193,9 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
                       </p>
                     </div>
                   </div>
+                  <Badge variant={note.status === "signed" ? "default" : "outline"}>
+                    {note.status}
+                  </Badge>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -225,24 +228,38 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
                   </div>
                 )}
 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => handleDownloadSickNote(note.id, note.pdf_url)}
-                  disabled={generatingPdf === note.id}
-                >
-                  {generatingPdf === note.id ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating PDF...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      {note.pdf_url ? 'Download PDF' : 'Generate PDF'}
-                    </>
-                  )}
-                </Button>
+                {note.status === "signed" && note.signature_name && (
+                  <div className="border-t pt-3 mt-3">
+                    <p className="text-sm font-medium mb-1">Signed by:</p>
+                    <p className="text-sm text-muted-foreground">{note.signature_name}</p>
+                    {note.signature_timestamp && (
+                      <p className="text-xs text-muted-foreground">
+                        on {format(new Date(note.signature_timestamp), "PPp")}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {note.status === "signed" && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleDownloadSickNote(note.id, note.pdf_url)}
+                    disabled={generatingPdf === note.id}
+                  >
+                    {generatingPdf === note.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        {note.pdf_url ? 'Download PDF' : 'Generate PDF'}
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             ))}
           </CardContent>

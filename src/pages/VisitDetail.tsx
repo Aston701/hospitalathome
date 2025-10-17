@@ -22,6 +22,7 @@ import VitalsDisplay from "@/components/VitalsDisplay";
 import PrescriptionManager from "@/components/PrescriptionManager";
 import { DiagnosticRequestForm } from "@/components/DiagnosticRequestForm";
 import { SickNoteForm } from "@/components/SickNoteForm";
+import { SickNoteManager } from "@/components/SickNoteManager";
 import { MedicalDocumentsDisplay } from "@/components/MedicalDocumentsDisplay";
 
 type VisitStatus = Database["public"]["Enums"]["visit_status"];
@@ -612,6 +613,11 @@ const VisitDetail = () => {
         visitId={visit.id} 
         userRole={userRole || ""} 
         currentUserId={currentUserId || ""} 
+      />
+
+      <SickNoteManager 
+        visitId={visit.id}
+        userRole={userRole || ""}
       />
 
       <Card>

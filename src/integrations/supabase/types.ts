@@ -508,7 +508,11 @@ export type Database = {
           issued_by: string
           patient_id: string
           pdf_url: string | null
+          signature_ip: string | null
+          signature_name: string | null
+          signature_timestamp: string | null
           start_date: string
+          status: string
           updated_at: string
           visit_id: string
         }
@@ -522,7 +526,11 @@ export type Database = {
           issued_by: string
           patient_id: string
           pdf_url?: string | null
+          signature_ip?: string | null
+          signature_name?: string | null
+          signature_timestamp?: string | null
           start_date: string
+          status?: string
           updated_at?: string
           visit_id: string
         }
@@ -536,7 +544,11 @@ export type Database = {
           issued_by?: string
           patient_id?: string
           pdf_url?: string | null
+          signature_ip?: string | null
+          signature_name?: string | null
+          signature_timestamp?: string | null
           start_date?: string
+          status?: string
           updated_at?: string
           visit_id?: string
         }
