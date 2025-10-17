@@ -25,19 +25,29 @@ serve(async (req) => {
 
     console.log('Generating PDF for sick note:', sickNoteId);
 
-    // Fetch sick note with related data (without invalid foreign key joins)
+    // Fetch sick note data (no foreign key joins since they don't exist)
     const { data: sickNote, error: fetchError } = await supabase
       .from('sick_notes')
-      .select(`
-        *,
-        patient:patients(first_name, last_name, sa_id_number, date_of_birth),
-        visit:visits(scheduled_start)
-      `)
+      .select('*')
       .eq('id', sickNoteId)
       .single();
 
     if (fetchError) throw fetchError;
     if (!sickNote) throw new Error('Sick note not found');
+
+    // Fetch patient data separately
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('first_name, last_name, sa_id_number, date_of_birth')
+      .eq('id', sickNote.patient_id)
+      .single();
+
+    // Fetch visit data separately
+    const { data: visit } = await supabase
+      .from('visits')
+      .select('scheduled_start')
+      .eq('id', sickNote.visit_id)
+      .single();
 
     // Fetch doctor profile separately
     const { data: doctorProfile } = await supabase
@@ -134,18 +144,18 @@ serve(async (req) => {
               <div class="section-title">Patient Information</div>
               <div class="info-row">
                 <div class="info-label">Patient Name:</div>
-                <div class="info-value">${sickNote.patient.first_name} ${sickNote.patient.last_name}</div>
+                <div class="info-value">${patient?.first_name} ${patient?.last_name}</div>
               </div>
-              ${sickNote.patient.sa_id_number ? `
+              ${patient?.sa_id_number ? `
               <div class="info-row">
                 <div class="info-label">ID Number:</div>
-                <div class="info-value">${sickNote.patient.sa_id_number}</div>
+                <div class="info-value">${patient.sa_id_number}</div>
               </div>
               ` : ''}
-              ${sickNote.patient.date_of_birth ? `
+              ${patient?.date_of_birth ? `
               <div class="info-row">
                 <div class="info-label">Date of Birth:</div>
-                <div class="info-value">${new Date(sickNote.patient.date_of_birth).toLocaleDateString('en-ZA')}</div>
+                <div class="info-value">${new Date(patient.date_of_birth).toLocaleDateString('en-ZA')}</div>
               </div>
               ` : ''}
             </div>
@@ -154,7 +164,7 @@ serve(async (req) => {
               <div class="section-title">Medical Assessment</div>
               <div class="info-row">
                 <div class="info-label">Date of Consultation:</div>
-                <div class="info-value">${new Date(sickNote.visit.scheduled_start).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div class="info-value">${visit?.scheduled_start ? new Date(visit.scheduled_start).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</div>
               </div>
               <div class="info-row">
                 <div class="info-label">Diagnosis/Condition:</div>
@@ -239,7 +249,7 @@ serve(async (req) => {
     }
 
     const pdfBlob = await pdfResponse.blob();
-    const fileName = `sick_note_${sickNote.patient.first_name}_${sickNote.patient.last_name}_${new Date().getTime()}.pdf`;
+    const fileName = `sick_note_${patient?.first_name || 'patient'}_${patient?.last_name || 'note'}_${new Date().getTime()}.pdf`;
 
     // Upload to Supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
