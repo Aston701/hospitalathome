@@ -21,6 +21,7 @@ import VitalsUpload from "@/components/VitalsUpload";
 import VitalsDisplay from "@/components/VitalsDisplay";
 import PrescriptionManager from "@/components/PrescriptionManager";
 import { DiagnosticRequestForm } from "@/components/DiagnosticRequestForm";
+import { ImagingRequestForm } from "@/components/ImagingRequestForm";
 import { SickNoteForm } from "@/components/SickNoteForm";
 import { SickNoteManager } from "@/components/SickNoteManager";
 import { ConsultationNotesForm } from "@/components/ConsultationNotesForm";
@@ -638,6 +639,17 @@ const VisitDetail = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3 mb-6">
+            <ImagingRequestForm
+              visitId={visit.id}
+              patientId={visit.patient_id}
+              patientName={`${visit.patient?.first_name} ${visit.patient?.last_name}`}
+              canCreate={
+                (userRole === "doctor" && visit.doctor_id === currentUserId) ||
+                (userRole === "nurse" && visit.nurse_id === currentUserId) ||
+                userRole === "admin" ||
+                userRole === "control_room"
+              }
+            />
             <DiagnosticRequestForm
               visitId={visit.id}
               patientId={visit.patient_id}
