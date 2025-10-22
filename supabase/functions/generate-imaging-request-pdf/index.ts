@@ -53,7 +53,6 @@ Deno.serve(async (req) => {
     let y = height - 40;
     const leftMargin = 40;
     const rightMargin = width - 40;
-    const lineHeight = 14;
 
     // Helper functions
     const drawText = (text: string, x: number, yPos: number, options: any = {}) => {
@@ -76,150 +75,167 @@ Deno.serve(async (req) => {
       });
     };
 
-    const drawBox = (x: number, y: number, w: number, h: number, filled = false) => {
+    const drawBox = (x: number, y: number, w: number, h: number) => {
       page.drawRectangle({
         x, y, width: w, height: h,
         borderColor: rgb(0.3, 0.3, 0.3),
         borderWidth: 1,
-        color: filled ? rgb(0, 0, 0) : undefined,
       });
     };
 
     const drawCheckbox = (x: number, y: number, checked: boolean) => {
       drawBox(x, y, 10, 10);
       if (checked) {
-        // Use 'X' instead of checkmark as it's supported by standard fonts
         drawText('X', x + 2, y + 1, { size: 8, bold: true });
       }
     };
 
     // Title
-    drawText('DIAGNOSTIC IMAGING REQUEST FORM', leftMargin, y, { size: 16, bold: true });
-    y -= 20;
+    drawText('DIAGNOSTIC IMAGING REQUEST FORM', leftMargin, y, { size: 14, bold: true });
+    y -= 18;
     drawLine(leftMargin, y, rightMargin, y);
-    y -= 20;
+    y -= 15;
 
-    // Header info
+    // Header
     const examType = clinicalNotes.imagingType === 'xray' ? 'X-RAY' : 'ULTRASOUND';
-    drawText(`Examination Type: ${examType}`, leftMargin, y, { bold: true });
-    drawText(`Date: ${currentDate}`, rightMargin - 150, y);
-    y -= 25;
+    drawText(`Type: ${examType}`, leftMargin, y, { bold: true, size: 10 });
+    drawText(`Date: ${currentDate}`, rightMargin - 120, y, { size: 9 });
+    y -= 18;
 
-    // Patient Information Section
-    drawText('PATIENT INFORMATION', leftMargin, y, { size: 11, bold: true });
-    y -= 15;
-    drawBox(leftMargin, y - 40, rightMargin - leftMargin, 45, false);
-    y -= 12;
-    
-    drawText(`Name: ${patientName}`, leftMargin + 5, y);
-    drawText(`ID: ${request.patient.sa_id_number || 'N/A'}`, leftMargin + 280, y);
-    y -= 12;
-    drawText(`DOB: ${request.patient.date_of_birth || 'N/A'}`, leftMargin + 5, y);
-    drawText(`Phone: ${request.patient.phone}`, leftMargin + 280, y);
-    y -= 12;
-    drawText(`Medical Aid: ${request.patient.medical_aid_provider || 'None'}`, leftMargin + 5, y);
+    // Patient Info
+    drawText('PATIENT INFORMATION', leftMargin, y, { size: 10, bold: true });
+    y -= 10;
+    drawText(`Name: ${patientName}`, leftMargin + 5, y, { size: 8 });
+    drawText(`ID: ${request.patient.sa_id_number || 'N/A'}`, leftMargin + 250, y, { size: 8 });
+    y -= 10;
+    drawText(`DOB: ${request.patient.date_of_birth || 'N/A'}`, leftMargin + 5, y, { size: 8 });
+    drawText(`Phone: ${request.patient.phone}`, leftMargin + 250, y, { size: 8 });
+    y -= 10;
+    drawText(`Medical Aid: ${request.patient.medical_aid_provider || 'None'}`, leftMargin + 5, y, { size: 8 });
     if (request.patient.medical_aid_number) {
-      drawText(`Member #: ${request.patient.medical_aid_number}`, leftMargin + 280, y);
+      drawText(`Member: ${request.patient.medical_aid_number}`, leftMargin + 250, y, { size: 8 });
     }
-    y -= 25;
+    y -= 18;
 
-    // Examinations Section
-    drawText('EXAMINATIONS REQUESTED', leftMargin, y, { size: 11, bold: true });
-    y -= 15;
+    // Examinations
+    drawText('EXAMINATIONS REQUESTED', leftMargin, y, { size: 10, bold: true });
+    y -= 10;
     
     const selectedIds = new Set(request.tests_requested.map((t: any) => t.id));
     
-    const regions: any[] = clinicalNotes.imagingType === 'xray' 
-      ? [
-          { cat: 'Chest/Abd', items: ['chest:3445', 'abdomen:3477', 'kub:0000'] },
-          { cat: 'Upper Ext', items: ['hand:3305', 'wrist:3305', 'elbow:3907', 'shoulder:3907'] },
-          { cat: 'Lower Ext', items: ['foot:3307', 'ankle:3307', 'knee:3307', 'hip:3307'] },
-          { cat: 'Spine', items: ['cervical-spine:3321', 'thoracic-spine:3321', 'lumbar-spine:3321'] },
-          { cat: 'Head/Neck', items: ['skull:3349', 'sinuses:3351', 'mandible:3355'] },
-        ]
-      : [
-          { cat: 'Ultrasound', items: ['us-abdomen:3627', 'us-renal:3628', 'us-pelvis-ta:3618', 'us-obstetric:3615', 'us-thyroid:3629'] },
-        ];
+    if (clinicalNotes.imagingType === 'xray') {
+      const xrayItems = [
+        ['chest', 'Chest', '3445'], ['chest-ribs', 'Chest & Ribs', '3449'], ['abdomen', 'Abdomen', '3477'],
+        ['acute-abdomen', 'Acute Abd', '3479'], ['kub', 'KUB', '0000'], ['finger', 'Finger', '3305'],
+        ['hand', 'Hand', '3305'], ['wrist', 'Wrist', '3305'], ['forearm', 'Forearm', '3367'],
+        ['elbow', 'Elbow', '3907'], ['humerus', 'Humerus', '3907'], ['shoulder', 'Shoulder', '3907'],
+        ['clavicle', 'Clavicle', '3907'], ['scapula', 'Scapula', '3907'], ['toe', 'Toe', '3305'],
+        ['foot', 'Foot', '3307'], ['ankle', 'Ankle', '3307'], ['tibia-fibula', 'Tibia/Fibula', '3307'],
+        ['knee', 'Knee', '3307'], ['femur', 'Femur', '3307'], ['hip', 'Hip', '3307'],
+        ['pelvis', 'Pelvis', '3331'], ['sacroiliac', 'SI Joints', '3321'], ['cervical-spine', 'C-Spine', '3321'],
+        ['thoracic-spine', 'T-Spine', '3321'], ['lumbar-spine', 'L-Spine', '3321'], ['sacrum', 'Sacrum', '3321'],
+        ['coccyx', 'Coccyx', '3321'], ['skull', 'Skull', '3349'], ['sinuses', 'Sinuses', '3351'],
+        ['mandible', 'Mandible', '3355'], ['tmj', 'TMJ', '3367'], ['sternum', 'Sternum', '3451'],
+        ['barium-swallow', 'Barium Swallow', '3399'], ['ivu', 'IVU', '3487'], ['venogram', 'Venogram', '3345'],
+      ];
 
-    const boxHeight = 60;
-    drawBox(leftMargin, y - boxHeight, rightMargin - leftMargin, boxHeight);
-    y -= 10;
-
-    let xPos = leftMargin + 10;
-    regions.forEach((category, idx) => {
-      if (idx > 0 && idx % 3 === 0) {
-        y -= 20;
-        xPos = leftMargin + 10;
-      }
+      let colX = leftMargin + 5;
+      let itemsInRow = 0;
       
-      drawText(category.cat + ':', xPos, y, { size: 8, bold: true });
-      let itemY = y - 10;
-      category.items.forEach((item: string) => {
-        const [id, code] = item.split(':');
-        const label = id.replace(/-/g, ' ').replace('us ', '');
+      xrayItems.forEach(([id, label, code]) => {
+        if (itemsInRow === 3) {
+          y -= 8;
+          colX = leftMargin + 5;
+          itemsInRow = 0;
+        }
+        
         const checked = selectedIds.has(id);
-        drawCheckbox(xPos, itemY - 2, checked);
-        drawText(label.substring(0, 12), xPos + 13, itemY, { size: 7 });
-        itemY -= 9;
+        drawCheckbox(colX, y, checked);
+        drawText(`${label} (${code})`, colX + 13, y + 2, { size: 6 });
+        
+        colX += 170;
+        itemsInRow++;
       });
-      xPos += 170;
-    });
-    
-    y -= boxHeight - 5;
+      
+      y -= 10;
+      
+    } else {
+      const usItems = [
+        ['us-abdomen', 'Abdomen', '3627'], ['us-renal', 'Renal Tract', '3628'],
+        ['us-pelvis-ta', 'Pelvis TA', '3618'], ['us-pelvis-tv', 'Pelvis TV', '5100'],
+        ['us-soft-tissue', 'Soft Tissue', '3629'], ['us-obstetric', 'Obstetric', '3615'],
+        ['us-obstetric-fu', 'OB F/UP', '3617'], ['us-thyroid', 'Thyroid', '3629'],
+        ['us-scrotum', 'Scrotum', '3629'], ['us-breast', 'Breast', '3629'],
+        ['us-prostate-ta', 'Prostate', '3629'],
+      ];
 
-    // Clinical Information
-    drawText('CLINICAL INFORMATION', leftMargin, y, { size: 11, bold: true });
+      let colX = leftMargin + 5;
+      usItems.forEach(([id, label, code], idx) => {
+        if (idx > 0 && idx % 3 === 0) {
+          y -= 8;
+          colX = leftMargin + 5;
+        }
+        const checked = selectedIds.has(id);
+        drawCheckbox(colX, y, checked);
+        drawText(`${label} (${code})`, colX + 13, y + 2, { size: 7 });
+        colX += 170;
+      });
+      y -= 10;
+    }
+
     y -= 12;
-    drawText(`Indication: ${clinicalNotes.clinicalIndication?.substring(0, 80) || 'N/A'}`, leftMargin + 5, y, { size: 9 });
+
+    // Clinical Info
+    drawText('CLINICAL INFORMATION', leftMargin, y, { size: 10, bold: true });
     y -= 10;
-    drawText(`History: ${clinicalNotes.clinicalHistory?.substring(0, 80) || 'N/A'}`, leftMargin + 5, y, { size: 9 });
-    y -= 10;
-    drawText(`Findings: ${clinicalNotes.relevantFindings?.substring(0, 80) || 'N/A'}`, leftMargin + 5, y, { size: 9 });
-    y -= 10;
-    drawText(`Diagnosis: ${clinicalNotes.provisionalDiagnosis || 'N/A'}`, leftMargin + 5, y, { size: 9 });
-    y -= 20;
+    drawText(`Indication: ${clinicalNotes.clinicalIndication?.substring(0, 85) || 'N/A'}`, leftMargin + 5, y, { size: 7 });
+    y -= 8;
+    drawText(`History: ${clinicalNotes.clinicalHistory?.substring(0, 85) || 'N/A'}`, leftMargin + 5, y, { size: 7 });
+    y -= 8;
+    drawText(`Findings: ${clinicalNotes.relevantFindings?.substring(0, 85) || 'N/A'}`, leftMargin + 5, y, { size: 7 });
+    y -= 8;
+    drawText(`Diagnosis: ${clinicalNotes.provisionalDiagnosis || 'N/A'}`, leftMargin + 5, y, { size: 7 });
+    y -= 15;
 
     // Additional Info
-    drawText('ADDITIONAL INFORMATION', leftMargin, y, { size: 11, bold: true });
-    y -= 15;
-    drawBox(leftMargin, y - 30, rightMargin - leftMargin, 32);
+    drawText('ADDITIONAL INFORMATION', leftMargin, y, { size: 10, bold: true });
     y -= 10;
     
     const pregnancy = clinicalNotes.pregnancy?.status;
-    drawCheckbox(leftMargin + 5, y - 2, !pregnancy);
-    drawText('Not Pregnant', leftMargin + 18, y, { size: 9 });
-    drawCheckbox(leftMargin + 100, y - 2, pregnancy);
-    drawText(pregnancy ? `Pregnant (${clinicalNotes.pregnancy.weeks}w)` : 'Pregnant', leftMargin + 113, y, { size: 9 });
+    drawCheckbox(leftMargin + 5, y, !pregnancy);
+    drawText('Not Pregnant', leftMargin + 18, y + 2, { size: 7 });
+    drawCheckbox(leftMargin + 90, y, pregnancy);
+    drawText(pregnancy ? `Pregnant (${clinicalNotes.pregnancy.weeks}w)` : 'Pregnant', leftMargin + 103, y + 2, { size: 7 });
     
-    drawCheckbox(leftMargin + 220, y - 2, !clinicalNotes.contrast);
-    drawText('No Contrast', leftMargin + 233, y, { size: 9 });
-    drawCheckbox(leftMargin + 310, y - 2, clinicalNotes.contrast);
-    drawText('Contrast Req', leftMargin + 323, y, { size: 9 });
+    drawCheckbox(leftMargin + 200, y, !clinicalNotes.contrast);
+    drawText('No Contrast', leftMargin + 213, y + 2, { size: 7 });
+    drawCheckbox(leftMargin + 280, y, clinicalNotes.contrast);
+    drawText('Contrast', leftMargin + 293, y + 2, { size: 7 });
     
-    y -= 12;
-    drawText(`Allergies: ${clinicalNotes.allergies || 'None'}`, leftMargin + 5, y, { size: 9 });
-    drawText(`Urgency: ${clinicalNotes.urgency || 'Routine'}`, leftMargin + 300, y, { size: 9, bold: true });
-    y -= 25;
-
-    // Requesting Practitioner
-    drawText('REQUESTING PRACTITIONER', leftMargin, y, { size: 11, bold: true });
-    y -= 12;
-    drawText(`Name: ${requestedBy.full_name}`, leftMargin + 5, y, { size: 9 });
-    drawText(`Contact: ${requestedBy.phone || 'N/A'}`, leftMargin + 280, y, { size: 9 });
     y -= 10;
-    drawText(`Date: ${currentDate}`, leftMargin + 5, y, { size: 9 });
-    y -= 20;
+    drawText(`Allergies: ${clinicalNotes.allergies || 'None'}`, leftMargin + 5, y, { size: 7 });
+    drawText(`Urgency: ${clinicalNotes.urgency || 'Routine'}`, leftMargin + 280, y, { size: 7, bold: true });
+    y -= 15;
+
+    // Practitioner
+    drawText('REQUESTING PRACTITIONER', leftMargin, y, { size: 10, bold: true });
+    y -= 10;
+    drawText(`Name: ${requestedBy.full_name}`, leftMargin + 5, y, { size: 8 });
+    drawText(`Contact: ${requestedBy.phone || 'N/A'}`, leftMargin + 280, y, { size: 8 });
+    y -= 8;
+    drawText(`Date: ${currentDate}`, leftMargin + 5, y, { size: 8 });
+    y -= 15;
 
     // Footer
     drawLine(leftMargin, y, rightMargin, y);
-    y -= 12;
-    drawText('This is an official diagnostic imaging request', leftMargin, y, { size: 8 });
-    drawText(`Request ID: ${requestId.substring(0, 18)}...`, rightMargin - 150, y, { size: 7 });
+    y -= 10;
+    drawText('Official diagnostic imaging request', leftMargin, y, { size: 7 });
+    drawText(`Request ID: ${requestId.substring(0, 18)}...`, rightMargin - 140, y, { size: 6 });
 
     // Save PDF
     const pdfBytes = await pdfDoc.save();
 
-    // Upload to storage
+    // Upload
     const fileName = `imaging_request_${patientName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from('prescriptions')
@@ -234,7 +250,6 @@ Deno.serve(async (req) => {
       .from('prescriptions')
       .getPublicUrl(`imaging-requests/${fileName}`);
 
-    // Update request with PDF URL
     await supabase
       .from('diagnostic_requests')
       .update({ pdf_url: publicUrl })
