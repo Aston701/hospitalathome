@@ -20,8 +20,7 @@ Deno.serve(async (req) => {
       .from('diagnostic_requests')
       .select(`
         *,
-        patient:patients(first_name, last_name, date_of_birth, sa_id_number, phone, medical_aid_provider, medical_aid_number),
-        requested_by_profile:profiles!diagnostic_requests_requested_by_fkey(full_name, phone)
+        patient:patients(first_name, last_name, date_of_birth, sa_id_number, phone, medical_aid_provider, medical_aid_number)
       `)
       .eq('id', requestId)
       .single();
@@ -32,6 +31,19 @@ Deno.serve(async (req) => {
     }
 
     console.log('Request data fetched:', request);
+
+    // Fetch the requesting practitioner's profile separately
+    const { data: practitionerProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('id', request.requested_by)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching practitioner profile:', profileError);
+    }
+
+    const requestedByProfile = practitionerProfile || { full_name: 'Unknown', phone: null };
 
     // Parse clinical notes
     const clinicalNotes = JSON.parse(request.clinical_notes || '{}');
@@ -86,8 +98,8 @@ Known Allergies: ${clinicalNotes.allergies || 'None'}
 Urgency: ${clinicalNotes.urgency || 'Routine'}
 
 REQUESTING PRACTITIONER:
-Name: ${request.requested_by_profile.full_name}
-Contact: ${request.requested_by_profile.phone || 'N/A'}
+Name: ${requestedByProfile.full_name}
+Contact: ${requestedByProfile.phone || 'N/A'}
 Date: ${currentDate}
 
 ---
