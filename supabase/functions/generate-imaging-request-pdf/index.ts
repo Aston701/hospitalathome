@@ -170,11 +170,19 @@ function keyFor(r: Row) {
 
 function drawTickBox(page: any, x: number, centerY: number, size = 10, checked = false) {
   const y = centerY - size / 2;
-  page.drawRectangle({ x, y, width: size, height: size, borderWidth: 1 });
+  // Draw empty box with border only (no fill)
+  page.drawRectangle({ 
+    x, 
+    y, 
+    width: size, 
+    height: size, 
+    borderWidth: 1,
+    borderColor: COLORS.black,
+  });
   if (checked) {
     const p = 2;
-    page.drawLine({ start: { x: x + p, y: y + p }, end: { x: x + size - p, y: y + size - p }, thickness: 1 });
-    page.drawLine({ start: { x: x + p, y: y + size - p }, end: { x: x + size - p, y: y + p }, thickness: 1 });
+    page.drawLine({ start: { x: x + p, y: y + p }, end: { x: x + size - p, y: y + size - p }, thickness: 1.5, color: COLORS.black });
+    page.drawLine({ start: { x: x + p, y: y + size - p }, end: { x: x + size - p, y: y + p }, thickness: 1.5, color: COLORS.black });
   }
 }
 
