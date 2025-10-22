@@ -414,14 +414,7 @@ Deno.serve(async (req) => {
     // Fetch diagnostic request with related data
     const { data: diagnosticRequest, error: fetchError } = await supabaseClient
       .from('diagnostic_requests')
-      .select(`
-        *,
-        visit:visits(
-          *,
-          patient:patients(*)
-        ),
-        doctor:profiles!diagnostic_requests_requested_by_fkey(*)
-      `)
+      .select('*')
       .eq('id', requestId)
       .single();
 
@@ -436,10 +429,23 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch related visit data
+    const { data: visit } = await supabaseClient
+      .from('visits')
+      .select('*, patient:patients(*)')
+      .eq('id', diagnosticRequest.visit_id)
+      .single();
+
+    // Fetch doctor/requester data
+    const { data: doctor } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', diagnosticRequest.requested_by)
+      .single();
+
     console.log('Diagnostic request found:', diagnosticRequest.id);
 
-    const patient = diagnosticRequest.visit?.patient;
-    const doctor = diagnosticRequest.doctor;
+    const patient = visit?.patient;
     
     // Parse clinical notes if it's a JSON string
     let clinicalData: any = {};
