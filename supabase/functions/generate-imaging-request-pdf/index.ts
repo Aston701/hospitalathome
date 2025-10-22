@@ -442,20 +442,46 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch the diagnostic request with patient and doctor details
+    // Fetch the diagnostic request
     const { data: request, error: requestError } = await supabase
       .from("diagnostic_requests")
-      .select(`
-        *,
-        patient:patients(*),
-        doctor:profiles!diagnostic_requests_requested_by_fkey(*)
-      `)
+      .select("*")
       .eq("id", requestId)
       .single();
 
     if (requestError || !request) {
       console.error("Error fetching request:", requestError);
       return new Response(JSON.stringify({ error: "Request not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fetch patient data separately
+    const { data: patient, error: patientError } = await supabase
+      .from("patients")
+      .select("first_name, last_name, sa_id_number, date_of_birth, medical_aid_provider, medical_aid_number")
+      .eq("id", request.patient_id)
+      .single();
+
+    if (patientError || !patient) {
+      console.error("Error fetching patient:", patientError);
+      return new Response(JSON.stringify({ error: "Patient not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fetch doctor/requester profile separately
+    const { data: doctor, error: doctorError } = await supabase
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", request.requested_by)
+      .single();
+
+    if (doctorError || !doctor) {
+      console.error("Error fetching doctor:", doctorError);
+      return new Response(JSON.stringify({ error: "Doctor profile not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -474,17 +500,17 @@ Deno.serve(async (req) => {
     // Build the body for the PDF renderer
     const body = {
       patient: {
-        name: `${request.patient.first_name} ${request.patient.last_name}`,
-        sex: request.patient.gender || "",
+        name: `${patient.first_name} ${patient.last_name}`,
+        sex: "",
         lnmp: "",
-        idNumber: request.patient.id_number || "",
-        dob: request.patient.date_of_birth || "",
+        idNumber: patient.sa_id_number || "",
+        dob: patient.date_of_birth || "",
         date: new Date().toISOString().split('T')[0],
         private: false,
         medicalAid: {
-          isMember: !!request.patient.medical_aid_name,
-          name: request.patient.medical_aid_name || "",
-          number: request.patient.medical_aid_number || "",
+          isMember: !!patient.medical_aid_provider,
+          name: patient.medical_aid_provider || "",
+          number: patient.medical_aid_number || "",
         },
       },
       selected: request.tests_requested?.map((test: any) => 
@@ -492,15 +518,15 @@ Deno.serve(async (req) => {
       ) || [],
       clinicalHistory: clinicalNotes.clinicalHistory || "",
       doctor: {
-        name: request.doctor?.full_name || "",
-        practiceNumber: request.doctor?.practice_number || "",
+        name: doctor.full_name || "",
+        practiceNumber: "",
       },
     };
 
     const bytes = await renderPdf(body);
     
     // Upload PDF to storage
-    const fileName = `imaging_request_${request.patient.first_name}_${request.patient.last_name}_${Date.now()}.pdf`;
+    const fileName = `imaging_request_${patient.first_name}_${patient.last_name}_${Date.now()}.pdf`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("prescriptions")
       .upload(`imaging-requests/${fileName}`, bytes, {
