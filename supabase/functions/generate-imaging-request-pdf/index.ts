@@ -196,17 +196,17 @@ function drawInput(
   value?: string,
   bold?: any,
 ) {
-  page.drawText(label, { x, y: yTop + 3, size: 8, font: bold ?? font, color: COLORS.black });
+  page.drawText(label, { x, y: yTop + 3, size: 6, font: bold ?? font, color: COLORS.black });
   const y = yTop - h;
   page.drawRectangle({ x, y, width: w, height: h, borderWidth: 1, borderColor: COLORS.black });
   if (value) {
-    page.drawText(value, { x: x + 4, y: y + 4, size: 10, font, color: COLORS.black });
+    page.drawText(value, { x: x + 4, y: y + 4, size: 8, font, color: COLORS.black });
   }
   return y; // bottom
 }
 
 function drawUnderlineText(page: any, font: any, label: string, x: number, y: number, w: number, underlineY: number) {
-  page.drawText(label, { x, y, size: 10, font, color: COLORS.black });
+  page.drawText(label, { x, y, size: 8, font, color: COLORS.black });
   page.drawLine({ start: { x, y: underlineY }, end: { x: x + w, y: underlineY }, thickness: 1, color: COLORS.black });
 }
 
@@ -226,7 +226,7 @@ async function renderPdf(body: any) {
   page.drawText("X-RAY AND ULTRASOUND REQUEST FORM", {
     x: PAGE.margin,
     y: height - bandH - 6,
-    size: 12,
+    size: 9,
     font: fontBold,
     color: COLORS.black,
   });
@@ -267,11 +267,11 @@ async function renderPdf(body: any) {
 
   // Row 3: Private & Medical Aid
   y -= 26;
-  page.drawText("Private:", { x: left, y: y + 3, size: 10, font, color: COLORS.black });
+  page.drawText("Private:", { x: left, y: y + 3, size: 8, font, color: COLORS.black });
   drawTickBox(page, left + 46, y + 8, 10, !!body?.patient?.private);
 
   const maX = left + 80;
-  page.drawText("Medical Aid:", { x: maX, y: y + 3, size: 10, font, color: COLORS.black });
+  page.drawText("Medical Aid:", { x: maX, y: y + 3, size: 8, font, color: COLORS.black });
   drawTickBox(page, maX + 68, y + 8, 10, !!body?.patient?.medicalAid?.isMember);
 
   const maNameX = maX + 88;
@@ -283,7 +283,7 @@ async function renderPdf(body: any) {
 
   // Caption
   y -= 18;
-  page.drawText("Tick organ / region to be examined", { x: left, y, size: 10, font, color: COLORS.black });
+  page.drawText("Tick organ / region to be examined", { x: left, y, size: 8, font, color: COLORS.black });
 
   // Grid
   const gridTop = y - 12;
@@ -297,9 +297,9 @@ async function renderPdf(body: any) {
 
   function drawColumnHeader(x: number, topY: number, w: number) {
     page.drawRectangle({ x, y: topY - headerH, width: w, height: headerH, color: COLORS.gridHeader, borderWidth: 1, borderColor: COLORS.black });
-    page.drawText("CODE", { x: x + 6, y: topY - 13, size: 10, font: fontBold, color: COLORS.black });
-    page.drawText("PART", { x: x + codeW + 6, y: topY - 13, size: 10, font: fontBold, color: COLORS.black });
-    page.drawText("TICK", { x: x + w - tickW + 10, y: topY - 13, size: 10, font: fontBold, color: COLORS.black });
+    page.drawText("CODE", { x: x + 6, y: topY - 13, size: 8, font: fontBold, color: COLORS.black });
+    page.drawText("PART", { x: x + codeW + 6, y: topY - 13, size: 8, font: fontBold, color: COLORS.black });
+    page.drawText("TICK", { x: x + w - tickW + 10, y: topY - 13, size: 8, font: fontBold, color: COLORS.black });
     page.drawLine({ start: { x: x + codeW, y: topY - headerH }, end: { x: x + codeW, y: topY }, thickness: 1, color: COLORS.black });
     page.drawLine({ start: { x: x + w - tickW, y: topY - headerH }, end: { x: x + w - tickW, y: topY }, thickness: 1, color: COLORS.black });
   }
@@ -316,7 +316,7 @@ async function renderPdf(body: any) {
             : undefined;
 
     page.drawRectangle({ x, y: topY - h, width: w, height: h, color, borderWidth: 1, borderColor: COLORS.black });
-    page.drawText(title, { x: x + 6, y: topY - 13, size: 10, font: fontBold, color: COLORS.black });
+    page.drawText(title, { x: x + 6, y: topY - 13, size: 8, font: fontBold, color: COLORS.black });
     return h;
   }
 
@@ -324,8 +324,8 @@ async function renderPdf(body: any) {
     let yy = yStart;
     for (const r of rows) {
       page.drawRectangle({ x, y: yy - rowH, width: w, height: rowH, borderWidth: 1, borderColor: COLORS.black });
-      page.drawText(r.code, { x: x + 6, y: yy - 13, size: 10, font, color: COLORS.black });
-      page.drawText(r.part, { x: x + codeW + 6, y: yy - 13, size: 10, font, color: COLORS.black });
+      page.drawText(r.code, { x: x + 6, y: yy - 13, size: 8, font, color: COLORS.black });
+      page.drawText(r.part, { x: x + codeW + 6, y: yy - 13, size: 8, font, color: COLORS.black });
       const isChecked = keyFor(r).some((k) => selected.has(k));
       drawTickBox(page, x + w - tickW + 12, yy - rowH / 2, 10, isChecked);
       yy -= rowH;
@@ -357,14 +357,14 @@ async function renderPdf(body: any) {
   page.drawText("*If you are pregnant or suspect to be pregnant, please inform your doctor or radiographer", {
     x: PAGE.margin,
     y: footnoteY,
-    size: 9,
+    size: 7,
     font,
     color: COLORS.grayDark,
   });
 
   // Clinical History
   let chTop = footnoteY - 20;
-  page.drawText("Clinical History", { x: PAGE.margin, y: chTop, size: 10, font: fontBold, color: COLORS.black });
+  page.drawText("Clinical History", { x: PAGE.margin, y: chTop, size: 8, font: fontBold, color: COLORS.black });
   const chH = 72;
   page.drawRectangle({
     x: PAGE.margin,
@@ -378,10 +378,10 @@ async function renderPdf(body: any) {
     page.drawText(String(body.clinicalHistory), {
       x: PAGE.margin + 6,
       y: chTop - 18,
-      size: 10,
+      size: 8,
       font,
       color: COLORS.black,
-      lineHeight: 12,
+      lineHeight: 10,
       maxWidth: width - PAGE.margin * 2 - 12,
     });
   }
@@ -391,10 +391,10 @@ async function renderPdf(body: any) {
   const nameW2 = 240;
   const prW = 180;
   drawUnderlineText(page, font, "Doctor's Name", PAGE.margin, docY, nameW2, docY - 4);
-  if (body?.doctor?.name) page.drawText(body.doctor.name, { x: PAGE.margin + 110, y: docY, size: 10, font, color: COLORS.black });
+  if (body?.doctor?.name) page.drawText(body.doctor.name, { x: PAGE.margin + 110, y: docY, size: 8, font, color: COLORS.black });
   drawUnderlineText(page, font, "Practice Number", PAGE.margin + nameW2 + 24, docY, prW, docY - 4);
   if (body?.doctor?.practiceNumber)
-    page.drawText(body.doctor.practiceNumber, { x: PAGE.margin + nameW2 + 24 + 120, y: docY, size: 10, font, color: COLORS.black });
+    page.drawText(body.doctor.practiceNumber, { x: PAGE.margin + nameW2 + 24 + 120, y: docY, size: 8, font, color: COLORS.black });
   drawUnderlineText(page, font, "Signature", PAGE.margin + nameW2 + 24 + prW + 24, docY, 120, docY - 4);
 
   // Footer bar
@@ -402,7 +402,7 @@ async function renderPdf(body: any) {
   page.drawRectangle({ x: 0, y: 0, width, height: fbH, color: COLORS.footerBar });
   const footer =
     "Tel: 686 4455 | Plot 720/721 | Tsheko-Tsheko Road | Maun     Tel: 354 6580 | Plot 60601 | Block 7 | Gaborone";
-  page.drawText(footer, { x: PAGE.margin, y: 10, size: 9, font, color: COLORS.black });
+  page.drawText(footer, { x: PAGE.margin, y: 10, size: 7, font, color: COLORS.black });
 
   return await pdf.save();
 }
