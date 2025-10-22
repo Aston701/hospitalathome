@@ -188,11 +188,36 @@ export function ImagingRequestForm({
         status: "pending",
       };
 
-      const { error } = await supabase.from("diagnostic_requests").insert(requestData);
+      const { data: newRequest, error } = await supabase
+        .from("diagnostic_requests")
+        .insert(requestData)
+        .select()
+        .single();
 
       if (error) throw error;
 
       toast.success(`${imagingType === "xray" ? "X-Ray" : "Ultrasound"} request created successfully`);
+
+      // Generate PDF for the request
+      try {
+        const { error: pdfError } = await supabase.functions.invoke(
+          "generate-imaging-request-pdf",
+          {
+            body: { requestId: newRequest.id },
+          }
+        );
+
+        if (pdfError) {
+          console.error("Error generating PDF:", pdfError);
+          toast.error("Request created but PDF generation failed");
+        } else {
+          toast.success("PDF generated successfully");
+        }
+      } catch (pdfError) {
+        console.error("Error generating PDF:", pdfError);
+        toast.error("Request created but PDF generation failed");
+      }
+
       setIsOpen(false);
       resetForm();
       
