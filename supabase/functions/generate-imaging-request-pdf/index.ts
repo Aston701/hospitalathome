@@ -1,6 +1,5 @@
 // supabase/functions/generate-imaging-request-pdf/index.ts
-import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
-import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const PAGE = { width: 595.28, height: 841.89, margin: 24 }; // A4 portrait
 const COLORS = {
@@ -192,20 +191,9 @@ function drawUnderlineText(page: any, font: any, label: string, x: number, y: nu
 // ---------- render ----------
 async function renderPdf(body: any) {
   const pdf = await PDFDocument.create();
-  pdf.registerFontkit(fontkit);
 
-  const regBytes = new Uint8Array(
-    await (
-      await fetch("https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Regular.ttf")
-    ).arrayBuffer(),
-  );
-  const boldBytes = new Uint8Array(
-    await (
-      await fetch("https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Bold.ttf")
-    ).arrayBuffer(),
-  );
-  const font = await pdf.embedFont(regBytes, { subset: true });
-  const fontBold = await pdf.embedFont(boldBytes, { subset: true });
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   const page = pdf.addPage([PAGE.width, PAGE.height]);
   const { width, height } = page.getSize();
@@ -391,8 +379,8 @@ Deno.serve(async (req) => {
         return {};
       }
     })();
-    const bytes = await renderPdf(body);
-    return new Response(bytes, {
+    const pdfBytes = await renderPdf(body);
+    return new Response(pdfBytes as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": 'inline; filename="xray-ultrasound-request.pdf"',
