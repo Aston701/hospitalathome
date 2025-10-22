@@ -88,7 +88,8 @@ Deno.serve(async (req) => {
     const drawCheckbox = (x: number, y: number, checked: boolean) => {
       drawBox(x, y, 10, 10);
       if (checked) {
-        drawText('✓', x + 1, y + 1, { size: 8, bold: true });
+        // Use 'X' instead of checkmark as it's supported by standard fonts
+        drawText('X', x + 2, y + 1, { size: 8, bold: true });
       }
     };
 
