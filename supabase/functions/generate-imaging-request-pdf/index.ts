@@ -5,6 +5,11 @@ import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // --------------------- PAGE + COLORS ---------------------
 const PAGE = { width: 595.28, height: 841.89, margin: 24 }; // A4 portrait
 const COLORS = {
@@ -406,6 +411,11 @@ async function renderPdf(body: any) {
 
 // --------------------- HTTP HANDLER ---------------------
 Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     // Parse request body with error handling
     let requestId: string | undefined;
@@ -416,14 +426,14 @@ Deno.serve(async (req) => {
       console.error("Error parsing request body:", jsonError);
       return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     
     if (!requestId) {
       return new Response(JSON.stringify({ error: "requestId is required" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -447,7 +457,7 @@ Deno.serve(async (req) => {
       console.error("Error fetching request:", requestError);
       return new Response(JSON.stringify({ error: "Request not found" }), {
         status: 404,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -514,13 +524,13 @@ Deno.serve(async (req) => {
       .eq("id", requestId);
 
     return new Response(JSON.stringify({ pdfUrl: publicUrl }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
