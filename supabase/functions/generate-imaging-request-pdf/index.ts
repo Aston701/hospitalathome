@@ -1,8 +1,7 @@
 // supabase/functions/generate-imaging-request-pdf/index.ts
 // Deno + pdf-lib Edge Function — renders the imaging request form
 
-import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
-import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 const corsHeaders = {
@@ -91,7 +90,7 @@ const MIDDLE_PANEL: Panel = {
         { code: "3317", part: "Skeletal Survey" },
         { code: "0000", part: "Pelvis" },
         { code: "0000", part: "Hips" },
-        { code: "0000", part: "Skeletal Survey ≤5 years old" },
+        { code: "0000", part: "Skeletal Survey <=5 years old" },
         { code: "0000", part: "Skeletal Survey >5 years old" },
       ],
     },
@@ -214,20 +213,9 @@ function drawUnderlineText(page: any, font: any, label: string, x: number, y: nu
 // --------------------- RENDER ---------------------
 async function renderPdf(body: any) {
   const pdf = await PDFDocument.create();
-  pdf.registerFontkit(fontkit);
 
-  // Load Unicode fonts (TTF from GitHub)
-  const regularBytes = await (
-    await fetch(
-      "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf",
-    )
-  ).arrayBuffer();
-  const boldBytes = await (
-    await fetch("https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf")
-  ).arrayBuffer();
-
-  const font = await pdf.embedFont(new Uint8Array(regularBytes), { subset: true });
-  const fontBold = await pdf.embedFont(new Uint8Array(boldBytes), { subset: true });
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   const page = pdf.addPage([PAGE.width, PAGE.height]);
   const { width, height } = page.getSize();
