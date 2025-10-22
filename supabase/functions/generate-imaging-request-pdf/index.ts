@@ -1,5 +1,6 @@
 // supabase/functions/generate-imaging-request-pdf/index.ts
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const PAGE = { width: 595.28, height: 841.89, margin: 24 }; // A4 portrait
 const COLORS = {
@@ -159,11 +160,11 @@ function keyFor(r: Row) {
 }
 function drawTickBox(page: any, x: number, cy: number, size = 8, checked = false) {
   const y = cy - size / 2;
-  page.drawRectangle({ x, y, width: size, height: size, borderWidth: 1 });
+  page.drawRectangle({ x, y, width: size, height: size, borderWidth: 1, color: COLORS.black });
   if (checked) {
     const p = 1.6;
-    page.drawLine({ start: { x: x + p, y: y + p }, end: { x: x + size - p, y: y + size - p }, thickness: 1 });
-    page.drawLine({ start: { x: x + p, y: y + size - p }, end: { x: x + size - p, y: y + p }, thickness: 1 });
+    page.drawLine({ start: { x: x + p, y: y + p }, end: { x: x + size - p, y: y + size - p }, thickness: 1, color: COLORS.black });
+    page.drawLine({ start: { x: x + p, y: y + size - p }, end: { x: x + size - p, y: y + p }, thickness: 1, color: COLORS.black });
   }
 }
 function drawInput(
@@ -177,15 +178,15 @@ function drawInput(
   value?: string,
   bold?: any,
 ) {
-  page.drawText(label, { x, y: yTop + 2, size: 7, font: bold ?? font });
+  page.drawText(label, { x, y: yTop + 2, size: 7, font: bold ?? font, color: COLORS.black });
   const y = yTop - h;
-  page.drawRectangle({ x, y, width: w, height: h, borderWidth: 1 });
-  if (value) page.drawText(value, { x: x + 3, y: y + 3, size: 8.5, font });
+  page.drawRectangle({ x, y, width: w, height: h, borderWidth: 1, borderColor: COLORS.black });
+  if (value) page.drawText(value, { x: x + 3, y: y + 3, size: 8.5, font, color: COLORS.black });
   return y;
 }
 function drawUnderlineText(page: any, font: any, label: string, x: number, y: number, w: number, underlineY: number) {
-  page.drawText(label, { x, y, size: 9, font });
-  page.drawLine({ start: { x, y: underlineY }, end: { x: x + w, y: underlineY }, thickness: 1 });
+  page.drawText(label, { x, y, size: 9, font, color: COLORS.black });
+  page.drawLine({ start: { x, y: underlineY }, end: { x: x + w, y: underlineY }, thickness: 1, color: COLORS.black });
 }
 
 // ---------- render ----------
@@ -198,7 +199,7 @@ async function renderPdf(body: any) {
   const page = pdf.addPage([PAGE.width, PAGE.height]);
   const { width, height } = page.getSize();
 
-  // Header band (unchanged)
+  // Header band
   const bandH = 26;
   page.drawRectangle({ x: 0, y: height - bandH - 18, width, height: bandH, color: COLORS.primeGreen });
   page.drawText("X-RAY AND ULTRASOUND REQUEST FORM", {
@@ -219,7 +220,7 @@ async function renderPdf(body: any) {
     page.drawImage(img, { x: width - PAGE.margin - logoW, y: height - bandH - 10, width: logoW, height: logoH });
   } catch {}
 
-  // Patient details (tighter)
+  // Patient details
   let y = height - bandH - 40;
   const left = PAGE.margin;
   const gap = 10;
@@ -240,11 +241,11 @@ async function renderPdf(body: any) {
   drawInput(page, font, "Date:", left + idW + gap + dobW + gap, y, dateW, 14, body?.patient?.date, fontBold);
 
   y -= 22;
-  page.drawText("Private:", { x: left, y: y + 2, size: 9, font });
+  page.drawText("Private:", { x: left, y: y + 2, size: 9, font, color: COLORS.black });
   drawTickBox(page, left + 44, y + 7, 8, !!body?.patient?.private);
 
   const maX = left + 78;
-  page.drawText("Medical Aid:", { x: maX, y: y + 2, size: 9, font });
+  page.drawText("Medical Aid:", { x: maX, y: y + 2, size: 9, font, color: COLORS.black });
   drawTickBox(page, maX + 66, y + 7, 8, !!body?.patient?.medicalAid?.isMember);
 
   const maNameX = maX + 86;
@@ -255,9 +256,9 @@ async function renderPdf(body: any) {
   drawInput(page, font, "Medical Aid Number:", maNumX, y + 10, maNumW, 14, body?.patient?.medicalAid?.number || "");
 
   y -= 14;
-  page.drawText("Tick organ / region to be examined", { x: left, y, size: 9, font });
+  page.drawText("Tick organ / region to be examined", { x: left, y, size: 9, font, color: COLORS.black });
 
-  // Grid (smaller)
+  // Grid
   const gridTop = y - 10;
   const colWidth = (width - PAGE.margin * 2 - gap * 2) / 3;
   const rowH = 15;
@@ -268,12 +269,12 @@ async function renderPdf(body: any) {
   const selected: Set<string> = new Set((body?.selected || []).map((s: string) => String(s)));
 
   function header(x: number, topY: number, w: number) {
-    page.drawRectangle({ x, y: topY - headerH, width: w, height: headerH, color: COLORS.gridHeader, borderWidth: 1 });
-    page.drawText("CODE", { x: x + 6, y: topY - 12, size: 9, font: fontBold });
-    page.drawText("PART", { x: x + codeW + 6, y: topY - 12, size: 9, font: fontBold });
-    page.drawText("TICK", { x: x + w - tickW + 10, y: topY - 12, size: 9, font: fontBold });
-    page.drawLine({ start: { x: x + codeW, y: topY - headerH }, end: { x: x + codeW, y: topY }, thickness: 1 });
-    page.drawLine({ start: { x: x + w - tickW, y: topY - headerH }, end: { x: x + w - tickW, y: topY }, thickness: 1 });
+    page.drawRectangle({ x, y: topY - headerH, width: w, height: headerH, color: COLORS.gridHeader, borderWidth: 1, borderColor: COLORS.black });
+    page.drawText("CODE", { x: x + 6, y: topY - 12, size: 9, font: fontBold, color: COLORS.black });
+    page.drawText("PART", { x: x + codeW + 6, y: topY - 12, size: 9, font: fontBold, color: COLORS.black });
+    page.drawText("TICK", { x: x + w - tickW + 10, y: topY - 12, size: 9, font: fontBold, color: COLORS.black });
+    page.drawLine({ start: { x: x + codeW, y: topY - headerH }, end: { x: x + codeW, y: topY }, thickness: 1, color: COLORS.black });
+    page.drawLine({ start: { x: x + w - tickW, y: topY - headerH }, end: { x: x + w - tickW, y: topY }, thickness: 1, color: COLORS.black });
   }
   function sectionTitle(x: number, topY: number, w: number, title: string, tint: "teal" | "green" | "blue" | null) {
     const h = 16;
@@ -285,16 +286,16 @@ async function renderPdf(body: any) {
           : tint === "blue"
             ? COLORS.sectionBlue
             : undefined;
-    page.drawRectangle({ x, y: topY - h, width: w, height: h, color, borderWidth: 1 });
-    page.drawText(title, { x: x + 6, y: topY - 12, size: 9, font: fontBold });
+    page.drawRectangle({ x, y: topY - h, width: w, height: h, color, borderWidth: 1, borderColor: COLORS.black });
+    page.drawText(title, { x: x + 6, y: topY - 12, size: 9, font: fontBold, color: COLORS.black });
     return h;
   }
   function rows(x: number, yStart: number, w: number, data: Row[]) {
     let yy = yStart;
     for (const r of data) {
-      page.drawRectangle({ x, y: yy - rowH, width: w, height: rowH, borderWidth: 1 });
-      page.drawText(r.code, { x: x + 6, y: yy - 11, size: 8.5, font });
-      page.drawText(r.part, { x: x + codeW + 6, y: yy - 11, size: 8.5, font });
+      page.drawRectangle({ x, y: yy - rowH, width: w, height: rowH, borderWidth: 1, borderColor: COLORS.black });
+      page.drawText(r.code, { x: x + 6, y: yy - 11, size: 8.5, font, color: COLORS.black });
+      page.drawText(r.part, { x: x + codeW + 6, y: yy - 11, size: 8.5, font, color: COLORS.black });
       const checked = keyFor(r).some((k) => selected.has(k));
       drawTickBox(page, x + w - tickW + 12, yy - rowH / 2, 8, checked);
       yy -= rowH;
@@ -319,7 +320,7 @@ async function renderPdf(body: any) {
   bottomY = Math.min(bottomY, panel(x2, gridTop, MIDDLE_PANEL));
   bottomY = Math.min(bottomY, panel(x3, gridTop, RIGHT_PANEL));
 
-  // Footnote + Clinical History (smaller)
+  // Footnote + Clinical History
   const footnoteY = bottomY - 12;
   page.drawText("*If you are pregnant or suspect to be pregnant, please inform your doctor or radiographer", {
     x: PAGE.margin,
@@ -330,7 +331,7 @@ async function renderPdf(body: any) {
   });
 
   let chTop = footnoteY - 18;
-  page.drawText("Clinical History", { x: PAGE.margin, y: chTop, size: 9, font: fontBold });
+  page.drawText("Clinical History", { x: PAGE.margin, y: chTop, size: 9, font: fontBold, color: COLORS.black });
   const chH = 64;
   page.drawRectangle({
     x: PAGE.margin,
@@ -338,6 +339,7 @@ async function renderPdf(body: any) {
     width: width - PAGE.margin * 2,
     height: chH,
     borderWidth: 1,
+    borderColor: COLORS.black,
   });
   if (body?.clinicalHistory) {
     page.drawText(String(body.clinicalHistory), {
@@ -345,6 +347,7 @@ async function renderPdf(body: any) {
       y: chTop - 16,
       size: 8.5,
       font,
+      color: COLORS.black,
       lineHeight: 11,
       maxWidth: width - PAGE.margin * 2 - 10,
     });
@@ -354,10 +357,10 @@ async function renderPdf(body: any) {
   const nameW2 = 230,
     prW = 170;
   drawUnderlineText(page, font, "Doctor's Name", PAGE.margin, docY, nameW2, docY - 4);
-  if (body?.doctor?.name) page.drawText(body.doctor.name, { x: PAGE.margin + 100, y: docY, size: 9, font });
+  if (body?.doctor?.name) page.drawText(body.doctor.name, { x: PAGE.margin + 100, y: docY, size: 9, font, color: COLORS.black });
   drawUnderlineText(page, font, "Practice Number", PAGE.margin + nameW2 + 20, docY, prW, docY - 4);
   if (body?.doctor?.practiceNumber)
-    page.drawText(body.doctor.practiceNumber, { x: PAGE.margin + nameW2 + 20 + 110, y: docY, size: 9, font });
+    page.drawText(body.doctor.practiceNumber, { x: PAGE.margin + nameW2 + 20 + 110, y: docY, size: 9, font, color: COLORS.black });
   drawUnderlineText(page, font, "Signature", PAGE.margin + nameW2 + 20 + prW + 20, docY, 110, docY - 4);
 
   // Footer bar
@@ -365,30 +368,113 @@ async function renderPdf(body: any) {
   page.drawRectangle({ x: 0, y: 0, width, height: fbH, color: COLORS.footerBar });
   const footer =
     "Tel: 686 4455 | Plot 720/721 | Tsheko-Tsheko Road | Maun     Tel: 354 6580 | Plot 60601 | Block 7 | Gaborone";
-  page.drawText(footer, { x: PAGE.margin, y: 8, size: 8.5, font });
+  page.drawText(footer, { x: PAGE.margin, y: 8, size: 8.5, font, color: COLORS.black });
 
   return await pdf.save();
 }
 
 Deno.serve(async (req) => {
   try {
-    const body = await (async () => {
-      try {
-        return await req.json();
-      } catch {
-        return {};
-      }
-    })();
-    const pdfBytes = await renderPdf(body);
-    return new Response(pdfBytes as unknown as BodyInit, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'inline; filename="xray-ultrasound-request.pdf"',
-        "Cache-Control": "no-store",
+    const { requestId } = await req.json();
+
+    if (!requestId) {
+      return new Response(JSON.stringify({ error: "requestId is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch diagnostic request with related data
+    const { data: diagnosticRequest, error: fetchError } = await supabaseClient
+      .from('diagnostic_requests')
+      .select(`
+        *,
+        visit:visits(
+          *,
+          patient:patients(*)
+        ),
+        doctor:profiles!diagnostic_requests_doctor_id_fkey(*)
+      `)
+      .eq('id', requestId)
+      .single();
+
+    if (fetchError || !diagnosticRequest) {
+      console.error('Error fetching diagnostic request:', fetchError);
+      return new Response(JSON.stringify({ error: "Diagnostic request not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const patient = diagnosticRequest.visit?.patient;
+    const doctor = diagnosticRequest.doctor;
+
+    // Build request body for PDF
+    const pdfBody = {
+      patient: {
+        name: patient ? `${patient.first_name} ${patient.last_name}` : '',
+        sex: patient?.gender || '',
+        idNumber: patient?.id_number || '',
+        dob: patient?.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '',
+        date: new Date().toLocaleDateString(),
+        lnmp: '',
+        private: false,
+        medicalAid: {
+          isMember: false,
+          name: '',
+          number: ''
+        }
       },
+      selected: diagnosticRequest.selected_regions || [],
+      clinicalHistory: diagnosticRequest.clinical_notes || '',
+      doctor: {
+        name: doctor?.full_name || '',
+        practiceNumber: ''
+      }
+    };
+
+    const pdfBytes = await renderPdf(pdfBody);
+
+    // Upload PDF to storage
+    const fileName = `diagnostic_request_${requestId}.pdf`;
+    const { error: uploadError } = await supabaseClient.storage
+      .from('prescriptions')
+      .upload(fileName, pdfBytes, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Error uploading PDF:', uploadError);
+      throw uploadError;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabaseClient.storage
+      .from('prescriptions')
+      .getPublicUrl(fileName);
+
+    // Update diagnostic request with PDF URL
+    const { error: updateError } = await supabaseClient
+      .from('diagnostic_requests')
+      .update({ pdf_url: publicUrl })
+      .eq('id', requestId);
+
+    if (updateError) {
+      console.error('Error updating diagnostic request:', updateError);
+    }
+
+    return new Response(JSON.stringify({ pdfUrl: publicUrl }), {
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error(err);
+    console.error('PDF generation error:', err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
