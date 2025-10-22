@@ -70,8 +70,31 @@ serve(async (req) => {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+    // Fetch and embed the company logo
+    let logoImage = null;
+    try {
+      const logoResponse = await fetch('https://www.mri.co.bw/sites/default/files/LOGOMRIB.png');
+      const logoBytes = await logoResponse.arrayBuffer();
+      logoImage = await pdfDoc.embedPng(logoBytes);
+    } catch (error) {
+      console.error('Failed to load logo:', error);
+    }
+
     const { height } = page.getSize();
     let yPosition = height - 50;
+
+    // Add logo at the top if loaded successfully
+    if (logoImage) {
+      const logoHeight = 60;
+      const logoWidth = (logoImage.width / logoImage.height) * logoHeight;
+      page.drawImage(logoImage, {
+        x: 50,
+        y: yPosition - logoHeight,
+        width: logoWidth,
+        height: logoHeight,
+      });
+      yPosition -= logoHeight + 30;
+    }
 
     // Header
     page.drawText('MEDICAL CERTIFICATE', {
@@ -81,7 +104,7 @@ serve(async (req) => {
       font: boldFont,
       color: rgb(0, 0, 0),
     });
-    yPosition -= 25;
+    yPosition -= 30;
 
     page.drawText('Sick Note / Certificate of Incapacity', {
       x: 180,
