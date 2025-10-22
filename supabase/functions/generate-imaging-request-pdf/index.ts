@@ -414,7 +414,7 @@ Deno.serve(async (req) => {
       }
     })();
     const bytes = await renderPdf(body);
-    return new Response(bytes, {
+    return new Response(bytes as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": 'inline; filename="xray-ultrasound-request.pdf"',
