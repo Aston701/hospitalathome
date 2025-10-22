@@ -7,6 +7,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { z } from "zod";
+
+const consultationNotesSchema = z.object({
+  note_type: z.string(),
+  chief_complaint: z.string().max(2000).optional(),
+  history_present_illness: z.string().max(5000).optional(),
+  past_medical_history: z.string().max(5000).optional(),
+  current_medications: z.string().max(5000).optional(),
+  physical_examination: z.string().max(5000).optional(),
+  vital_signs_notes: z.string().max(2000).optional(),
+  assessment: z.string().max(5000).optional(),
+  diagnosis: z.string().max(2000).optional(),
+  treatment_plan: z.string().max(5000).optional(),
+  prescriptions_notes: z.string().max(5000).optional(),
+  follow_up_instructions: z.string().max(5000).optional(),
+  additional_notes: z.string().max(5000).optional(),
+});
 
 interface ConsultationNotesFormProps {
   visitId: string;
@@ -37,6 +54,9 @@ export function ConsultationNotesForm({ visitId, onSuccess }: ConsultationNotesF
     setSaving(true);
 
     try {
+      // Validate input
+      const validatedData = consultationNotesSchema.parse(formData);
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -45,7 +65,7 @@ export function ConsultationNotesForm({ visitId, onSuccess }: ConsultationNotesF
         .insert({
           visit_id: visitId,
           created_by: user.id,
-          ...formData,
+          ...validatedData,
         });
 
       if (error) throw error;
@@ -78,7 +98,9 @@ export function ConsultationNotesForm({ visitId, onSuccess }: ConsultationNotesF
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to save consultation notes",
+        description: error instanceof z.ZodError 
+          ? error.errors[0].message 
+          : error.message || "Failed to save consultation notes",
       });
     } finally {
       setSaving(false);
