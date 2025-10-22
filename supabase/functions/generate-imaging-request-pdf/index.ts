@@ -1,15 +1,7 @@
 // supabase/functions/generate-imaging-request-pdf/index.ts
-// Deno + pdf-lib Edge Function — renders the imaging request form
+import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// --------------------- PAGE + COLORS ---------------------
 const PAGE = { width: 595.28, height: 841.89, margin: 24 }; // A4 portrait
 const COLORS = {
   black: rgb(0, 0, 0),
@@ -22,7 +14,7 @@ const COLORS = {
   grayDark: rgb(0.2, 0.2, 0.2),
 };
 
-// --------------------- DATA ---------------------
+// ---------- DATA ----------
 type Row = { code: string; part: string };
 type Section = { title: string; tint: "teal" | "green" | "blue" | null; rows: Row[] };
 type Panel = { sections: Section[] };
@@ -90,7 +82,7 @@ const MIDDLE_PANEL: Panel = {
         { code: "3317", part: "Skeletal Survey" },
         { code: "0000", part: "Pelvis" },
         { code: "0000", part: "Hips" },
-        { code: "0000", part: "Skeletal Survey <=5 years old" },
+        { code: "0000", part: "Skeletal Survey ≤5 years old" },
         { code: "0000", part: "Skeletal Survey >5 years old" },
       ],
     },
@@ -162,29 +154,19 @@ const RIGHT_PANEL: Panel = {
   ],
 };
 
-// --------------------- UTIL ---------------------
+// ---------- helpers ----------
 function keyFor(r: Row) {
   return [`${r.code}`, `${r.code}:${r.part}`];
 }
-
-function drawTickBox(page: any, x: number, centerY: number, size = 10, checked = false) {
-  const y = centerY - size / 2;
-  // Draw empty box with border only (no fill)
-  page.drawRectangle({ 
-    x, 
-    y, 
-    width: size, 
-    height: size, 
-    borderWidth: 1,
-    borderColor: COLORS.black,
-  });
+function drawTickBox(page: any, x: number, cy: number, size = 8, checked = false) {
+  const y = cy - size / 2;
+  page.drawRectangle({ x, y, width: size, height: size, borderWidth: 1 });
   if (checked) {
-    const p = 2;
-    page.drawLine({ start: { x: x + p, y: y + p }, end: { x: x + size - p, y: y + size - p }, thickness: 1.5, color: COLORS.black });
-    page.drawLine({ start: { x: x + p, y: y + size - p }, end: { x: x + size - p, y: y + p }, thickness: 1.5, color: COLORS.black });
+    const p = 1.6;
+    page.drawLine({ start: { x: x + p, y: y + p }, end: { x: x + size - p, y: y + size - p }, thickness: 1 });
+    page.drawLine({ start: { x: x + p, y: y + size - p }, end: { x: x + size - p, y: y + p }, thickness: 1 });
   }
 }
-
 function drawInput(
   page: any,
   font: any,
@@ -192,41 +174,49 @@ function drawInput(
   x: number,
   yTop: number,
   w: number,
-  h = 16,
+  h = 14,
   value?: string,
   bold?: any,
 ) {
-  page.drawText(label, { x, y: yTop + 3, size: 6, font: bold ?? font, color: COLORS.black });
+  page.drawText(label, { x, y: yTop + 2, size: 7, font: bold ?? font });
   const y = yTop - h;
-  page.drawRectangle({ x, y, width: w, height: h, borderWidth: 1, borderColor: COLORS.black });
-  if (value) {
-    page.drawText(value, { x: x + 4, y: y + 4, size: 8, font, color: COLORS.black });
-  }
-  return y; // bottom
+  page.drawRectangle({ x, y, width: w, height: h, borderWidth: 1 });
+  if (value) page.drawText(value, { x: x + 3, y: y + 3, size: 8.5, font });
+  return y;
 }
-
 function drawUnderlineText(page: any, font: any, label: string, x: number, y: number, w: number, underlineY: number) {
-  page.drawText(label, { x, y, size: 8, font, color: COLORS.black });
-  page.drawLine({ start: { x, y: underlineY }, end: { x: x + w, y: underlineY }, thickness: 1, color: COLORS.black });
+  page.drawText(label, { x, y, size: 9, font });
+  page.drawLine({ start: { x, y: underlineY }, end: { x: x + w, y: underlineY }, thickness: 1 });
 }
 
-// --------------------- RENDER ---------------------
+// ---------- render ----------
 async function renderPdf(body: any) {
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
 
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const regBytes = new Uint8Array(
+    await (
+      await fetch("https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Regular.ttf")
+    ).arrayBuffer(),
+  );
+  const boldBytes = new Uint8Array(
+    await (
+      await fetch("https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Bold.ttf")
+    ).arrayBuffer(),
+  );
+  const font = await pdf.embedFont(regBytes, { subset: true });
+  const fontBold = await pdf.embedFont(boldBytes, { subset: true });
 
   const page = pdf.addPage([PAGE.width, PAGE.height]);
   const { width, height } = page.getSize();
 
-  // Header band
-  const bandH = 28;
+  // Header band (unchanged)
+  const bandH = 26;
   page.drawRectangle({ x: 0, y: height - bandH - 18, width, height: bandH, color: COLORS.primeGreen });
   page.drawText("X-RAY AND ULTRASOUND REQUEST FORM", {
     x: PAGE.margin,
     y: height - bandH - 6,
-    size: 9,
+    size: 11,
     font: fontBold,
     color: COLORS.black,
   });
@@ -236,76 +226,69 @@ async function renderPdf(body: any) {
     const res = await fetch("https://mediresponse.co.za/wp-content/uploads/2021/06/Medi-Response-Long-Logo.png");
     const bytes = await res.arrayBuffer();
     const img = await pdf.embedPng(bytes);
-    const logoW = 150;
+    const logoW = 138;
     const logoH = (logoW / img.width) * img.height;
     page.drawImage(img, { x: width - PAGE.margin - logoW, y: height - bandH - 10, width: logoW, height: logoH });
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
-  // Patient details
+  // Patient details (tighter)
   let y = height - bandH - 40;
   const left = PAGE.margin;
   const gap = 10;
 
-  // Row 1
-  const nameW = 250;
-  drawInput(page, font, "Name:", left, y, nameW, 16, body?.patient?.name, fontBold);
-  const sexW = 60;
-  drawInput(page, font, "Sex:", left + nameW + gap, y, sexW, 16, body?.patient?.sex, fontBold);
-  const lnmpW = 90;
-  drawInput(page, font, "LNMP:", left + nameW + gap + sexW + gap, y, lnmpW, 16, body?.patient?.lnmp, fontBold);
+  const nameW = 240;
+  drawInput(page, font, "Name:", left, y, nameW, 14, body?.patient?.name, fontBold);
+  const sexW = 54;
+  drawInput(page, font, "Sex:", left + nameW + gap, y, sexW, 14, body?.patient?.sex, fontBold);
+  const lnmpW = 84;
+  drawInput(page, font, "LNMP:", left + nameW + gap + sexW + gap, y, lnmpW, 14, body?.patient?.lnmp, fontBold);
 
-  // Row 2
-  y -= 26;
-  const idW = 180;
-  drawInput(page, font, "I.D. Number:", left, y, idW, 16, body?.patient?.idNumber, fontBold);
-  const dobW = 150;
-  drawInput(page, font, "DOB:", left + idW + gap, y, dobW, 16, body?.patient?.dob, fontBold);
-  const dateW = 150;
-  drawInput(page, font, "Date:", left + idW + gap + dobW + gap, y, dateW, 16, body?.patient?.date, fontBold);
+  y -= 22;
+  const idW = 168;
+  drawInput(page, font, "I.D. Number:", left, y, idW, 14, body?.patient?.idNumber, fontBold);
+  const dobW = 140;
+  drawInput(page, font, "DOB:", left + idW + gap, y, dobW, 14, body?.patient?.dob, fontBold);
+  const dateW = 140;
+  drawInput(page, font, "Date:", left + idW + gap + dobW + gap, y, dateW, 14, body?.patient?.date, fontBold);
 
-  // Row 3: Private & Medical Aid
-  y -= 26;
-  page.drawText("Private:", { x: left, y: y + 3, size: 8, font, color: COLORS.black });
-  drawTickBox(page, left + 46, y + 8, 10, !!body?.patient?.private);
+  y -= 22;
+  page.drawText("Private:", { x: left, y: y + 2, size: 9, font });
+  drawTickBox(page, left + 44, y + 7, 8, !!body?.patient?.private);
 
-  const maX = left + 80;
-  page.drawText("Medical Aid:", { x: maX, y: y + 3, size: 8, font, color: COLORS.black });
-  drawTickBox(page, maX + 68, y + 8, 10, !!body?.patient?.medicalAid?.isMember);
+  const maX = left + 78;
+  page.drawText("Medical Aid:", { x: maX, y: y + 2, size: 9, font });
+  drawTickBox(page, maX + 66, y + 7, 8, !!body?.patient?.medicalAid?.isMember);
 
-  const maNameX = maX + 88;
-  const maNameW = 180;
-  drawInput(page, font, "Name of Medical Aid", maNameX, y + 12, maNameW, 16, body?.patient?.medicalAid?.name || "");
+  const maNameX = maX + 86;
+  const maNameW = 170;
+  drawInput(page, font, "Name of Medical Aid", maNameX, y + 10, maNameW, 14, body?.patient?.medicalAid?.name || "");
   const maNumX = maNameX + maNameW + gap;
-  const maNumW = 160;
-  drawInput(page, font, "Medical Aid Number:", maNumX, y + 12, maNumW, 16, body?.patient?.medicalAid?.number || "");
+  const maNumW = 150;
+  drawInput(page, font, "Medical Aid Number:", maNumX, y + 10, maNumW, 14, body?.patient?.medicalAid?.number || "");
 
-  // Caption
-  y -= 18;
-  page.drawText("Tick organ / region to be examined", { x: left, y, size: 8, font, color: COLORS.black });
+  y -= 14;
+  page.drawText("Tick organ / region to be examined", { x: left, y, size: 9, font });
 
-  // Grid
-  const gridTop = y - 12;
+  // Grid (smaller)
+  const gridTop = y - 10;
   const colWidth = (width - PAGE.margin * 2 - gap * 2) / 3;
-  const rowH = 18;
-  const headerH = 18;
-  const codeW = 54;
-  const tickW = 40;
+  const rowH = 15;
+  const headerH = 15;
+  const codeW = 50;
+  const tickW = 34;
 
   const selected: Set<string> = new Set((body?.selected || []).map((s: string) => String(s)));
 
-  function drawColumnHeader(x: number, topY: number, w: number) {
-    page.drawRectangle({ x, y: topY - headerH, width: w, height: headerH, color: COLORS.gridHeader, borderWidth: 1, borderColor: COLORS.black });
-    page.drawText("CODE", { x: x + 6, y: topY - 13, size: 8, font: fontBold, color: COLORS.black });
-    page.drawText("PART", { x: x + codeW + 6, y: topY - 13, size: 8, font: fontBold, color: COLORS.black });
-    page.drawText("TICK", { x: x + w - tickW + 10, y: topY - 13, size: 8, font: fontBold, color: COLORS.black });
-    page.drawLine({ start: { x: x + codeW, y: topY - headerH }, end: { x: x + codeW, y: topY }, thickness: 1, color: COLORS.black });
-    page.drawLine({ start: { x: x + w - tickW, y: topY - headerH }, end: { x: x + w - tickW, y: topY }, thickness: 1, color: COLORS.black });
+  function header(x: number, topY: number, w: number) {
+    page.drawRectangle({ x, y: topY - headerH, width: w, height: headerH, color: COLORS.gridHeader, borderWidth: 1 });
+    page.drawText("CODE", { x: x + 6, y: topY - 12, size: 9, font: fontBold });
+    page.drawText("PART", { x: x + codeW + 6, y: topY - 12, size: 9, font: fontBold });
+    page.drawText("TICK", { x: x + w - tickW + 10, y: topY - 12, size: 9, font: fontBold });
+    page.drawLine({ start: { x: x + codeW, y: topY - headerH }, end: { x: x + codeW, y: topY }, thickness: 1 });
+    page.drawLine({ start: { x: x + w - tickW, y: topY - headerH }, end: { x: x + w - tickW, y: topY }, thickness: 1 });
   }
-
-  function drawSectionTitle(x: number, topY: number, w: number, title: string, tint: "teal" | "green" | "blue" | null) {
-    const h = 18;
+  function sectionTitle(x: number, topY: number, w: number, title: string, tint: "teal" | "green" | "blue" | null) {
+    const h = 16;
     const color =
       tint === "teal"
         ? COLORS.sectionTeal
@@ -314,247 +297,113 @@ async function renderPdf(body: any) {
           : tint === "blue"
             ? COLORS.sectionBlue
             : undefined;
-
-    page.drawRectangle({ x, y: topY - h, width: w, height: h, color, borderWidth: 1, borderColor: COLORS.black });
-    page.drawText(title, { x: x + 6, y: topY - 13, size: 8, font: fontBold, color: COLORS.black });
+    page.drawRectangle({ x, y: topY - h, width: w, height: h, color, borderWidth: 1 });
+    page.drawText(title, { x: x + 6, y: topY - 12, size: 9, font: fontBold });
     return h;
   }
-
-  function drawRows(x: number, yStart: number, w: number, rows: Row[]) {
+  function rows(x: number, yStart: number, w: number, data: Row[]) {
     let yy = yStart;
-    for (const r of rows) {
-      page.drawRectangle({ x, y: yy - rowH, width: w, height: rowH, borderWidth: 1, borderColor: COLORS.black });
-      page.drawText(r.code, { x: x + 6, y: yy - 13, size: 8, font, color: COLORS.black });
-      page.drawText(r.part, { x: x + codeW + 6, y: yy - 13, size: 8, font, color: COLORS.black });
-      const isChecked = keyFor(r).some((k) => selected.has(k));
-      drawTickBox(page, x + w - tickW + 12, yy - rowH / 2, 10, isChecked);
+    for (const r of data) {
+      page.drawRectangle({ x, y: yy - rowH, width: w, height: rowH, borderWidth: 1 });
+      page.drawText(r.code, { x: x + 6, y: yy - 11, size: 8.5, font });
+      page.drawText(r.part, { x: x + codeW + 6, y: yy - 11, size: 8.5, font });
+      const checked = keyFor(r).some((k) => selected.has(k));
+      drawTickBox(page, x + w - tickW + 12, yy - rowH / 2, 8, checked);
       yy -= rowH;
     }
     return yy;
   }
-
-  function drawPanel(x: number, topY: number, panel: Panel) {
+  function panel(x: number, topY: number, p: Panel) {
     let yy = topY;
-    drawColumnHeader(x, yy, colWidth);
+    header(x, yy, colWidth);
     yy -= headerH;
-    for (const sec of panel.sections) {
-      yy -= drawSectionTitle(x, yy, colWidth, sec.title, sec.tint);
-      yy = drawRows(x, yy, colWidth, sec.rows);
+    for (const s of p.sections) {
+      yy -= sectionTitle(x, yy, colWidth, s.title, s.tint);
+      yy = rows(x, yy, colWidth, s.rows);
     }
     return yy;
   }
 
-  const x1 = PAGE.margin;
-  const x2 = PAGE.margin + colWidth + gap;
-  const x3 = PAGE.margin + (colWidth + gap) * 2;
+  const x1 = PAGE.margin,
+    x2 = PAGE.margin + colWidth + gap,
+    x3 = PAGE.margin + (colWidth + gap) * 2;
+  let bottomY = panel(x1, gridTop, LEFT_PANEL);
+  bottomY = Math.min(bottomY, panel(x2, gridTop, MIDDLE_PANEL));
+  bottomY = Math.min(bottomY, panel(x3, gridTop, RIGHT_PANEL));
 
-  let bottomY = drawPanel(x1, gridTop, LEFT_PANEL);
-  bottomY = Math.min(bottomY, drawPanel(x2, gridTop, MIDDLE_PANEL));
-  bottomY = Math.min(bottomY, drawPanel(x3, gridTop, RIGHT_PANEL));
-
-  // Footnote
-  const footnoteY = bottomY - 14;
+  // Footnote + Clinical History (smaller)
+  const footnoteY = bottomY - 12;
   page.drawText("*If you are pregnant or suspect to be pregnant, please inform your doctor or radiographer", {
     x: PAGE.margin,
     y: footnoteY,
-    size: 7,
+    size: 8.5,
     font,
     color: COLORS.grayDark,
   });
 
-  // Clinical History
-  let chTop = footnoteY - 20;
-  page.drawText("Clinical History", { x: PAGE.margin, y: chTop, size: 8, font: fontBold, color: COLORS.black });
-  const chH = 72;
+  let chTop = footnoteY - 18;
+  page.drawText("Clinical History", { x: PAGE.margin, y: chTop, size: 9, font: fontBold });
+  const chH = 64;
   page.drawRectangle({
     x: PAGE.margin,
-    y: chTop - chH - 6,
+    y: chTop - chH - 5,
     width: width - PAGE.margin * 2,
     height: chH,
     borderWidth: 1,
-    borderColor: COLORS.black,
   });
   if (body?.clinicalHistory) {
     page.drawText(String(body.clinicalHistory), {
-      x: PAGE.margin + 6,
-      y: chTop - 18,
-      size: 8,
+      x: PAGE.margin + 5,
+      y: chTop - 16,
+      size: 8.5,
       font,
-      color: COLORS.black,
-      lineHeight: 10,
-      maxWidth: width - PAGE.margin * 2 - 12,
+      lineHeight: 11,
+      maxWidth: width - PAGE.margin * 2 - 10,
     });
   }
 
-  // Doctor details
-  const docY = chTop - chH - 26;
-  const nameW2 = 240;
-  const prW = 180;
+  const docY = chTop - chH - 22;
+  const nameW2 = 230,
+    prW = 170;
   drawUnderlineText(page, font, "Doctor's Name", PAGE.margin, docY, nameW2, docY - 4);
-  if (body?.doctor?.name) page.drawText(body.doctor.name, { x: PAGE.margin + 110, y: docY, size: 8, font, color: COLORS.black });
-  drawUnderlineText(page, font, "Practice Number", PAGE.margin + nameW2 + 24, docY, prW, docY - 4);
+  if (body?.doctor?.name) page.drawText(body.doctor.name, { x: PAGE.margin + 100, y: docY, size: 9, font });
+  drawUnderlineText(page, font, "Practice Number", PAGE.margin + nameW2 + 20, docY, prW, docY - 4);
   if (body?.doctor?.practiceNumber)
-    page.drawText(body.doctor.practiceNumber, { x: PAGE.margin + nameW2 + 24 + 120, y: docY, size: 8, font, color: COLORS.black });
-  drawUnderlineText(page, font, "Signature", PAGE.margin + nameW2 + 24 + prW + 24, docY, 120, docY - 4);
+    page.drawText(body.doctor.practiceNumber, { x: PAGE.margin + nameW2 + 20 + 110, y: docY, size: 9, font });
+  drawUnderlineText(page, font, "Signature", PAGE.margin + nameW2 + 20 + prW + 20, docY, 110, docY - 4);
 
   // Footer bar
-  const fbH = 28;
+  const fbH = 24;
   page.drawRectangle({ x: 0, y: 0, width, height: fbH, color: COLORS.footerBar });
   const footer =
     "Tel: 686 4455 | Plot 720/721 | Tsheko-Tsheko Road | Maun     Tel: 354 6580 | Plot 60601 | Block 7 | Gaborone";
-  page.drawText(footer, { x: PAGE.margin, y: 10, size: 7, font, color: COLORS.black });
+  page.drawText(footer, { x: PAGE.margin, y: 8, size: 8.5, font });
 
   return await pdf.save();
 }
 
-// --------------------- HTTP HANDLER ---------------------
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
-    // Parse request body with error handling
-    let requestId: string | undefined;
-    try {
-      const body = await req.json();
-      requestId = body.requestId;
-    } catch (jsonError) {
-      console.error("Error parsing request body:", jsonError);
-      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    
-    if (!requestId) {
-      return new Response(JSON.stringify({ error: "requestId is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Fetch the diagnostic request
-    const { data: request, error: requestError } = await supabase
-      .from("diagnostic_requests")
-      .select("*")
-      .eq("id", requestId)
-      .single();
-
-    if (requestError || !request) {
-      console.error("Error fetching request:", requestError);
-      return new Response(JSON.stringify({ error: "Request not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Fetch patient data separately
-    const { data: patient, error: patientError } = await supabase
-      .from("patients")
-      .select("first_name, last_name, sa_id_number, date_of_birth, medical_aid_provider, medical_aid_number")
-      .eq("id", request.patient_id)
-      .single();
-
-    if (patientError || !patient) {
-      console.error("Error fetching patient:", patientError);
-      return new Response(JSON.stringify({ error: "Patient not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Fetch doctor/requester profile separately
-    const { data: doctor, error: doctorError } = await supabase
-      .from("profiles")
-      .select("full_name, phone")
-      .eq("id", request.requested_by)
-      .single();
-
-    if (doctorError || !doctor) {
-      console.error("Error fetching doctor:", doctorError);
-      return new Response(JSON.stringify({ error: "Doctor profile not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Parse clinical notes if it's a JSON string
-    let clinicalNotes: any = {};
-    try {
-      clinicalNotes = typeof request.clinical_notes === 'string' 
-        ? JSON.parse(request.clinical_notes) 
-        : request.clinical_notes || {};
-    } catch (e) {
-      console.error("Error parsing clinical notes:", e);
-    }
-
-    // Build the body for the PDF renderer
-    const body = {
-      patient: {
-        name: `${patient.first_name} ${patient.last_name}`,
-        sex: "",
-        lnmp: "",
-        idNumber: patient.sa_id_number || "",
-        dob: patient.date_of_birth || "",
-        date: new Date().toISOString().split('T')[0],
-        private: false,
-        medicalAid: {
-          isMember: !!patient.medical_aid_provider,
-          name: patient.medical_aid_provider || "",
-          number: patient.medical_aid_number || "",
-        },
-      },
-      selected: request.tests_requested?.map((test: any) => 
-        test.code ? `${test.code}:${test.label}` : test.label
-      ) || [],
-      clinicalHistory: clinicalNotes.clinicalHistory || "",
-      doctor: {
-        name: doctor.full_name || "",
-        practiceNumber: "",
-      },
-    };
-
+    const body = await (async () => {
+      try {
+        return await req.json();
+      } catch {
+        return {};
+      }
+    })();
     const bytes = await renderPdf(body);
-    
-    // Upload PDF to storage
-    const fileName = `imaging_request_${patient.first_name}_${patient.last_name}_${Date.now()}.pdf`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("prescriptions")
-      .upload(`imaging-requests/${fileName}`, bytes, {
-        contentType: "application/pdf",
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error("Error uploading PDF:", uploadError);
-      throw uploadError;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from("prescriptions")
-      .getPublicUrl(`imaging-requests/${fileName}`);
-
-    // Update the diagnostic request with the PDF URL
-    await supabase
-      .from("diagnostic_requests")
-      .update({ pdf_url: publicUrl })
-      .eq("id", requestId);
-
-    return new Response(JSON.stringify({ pdfUrl: publicUrl }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(bytes, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'inline; filename="xray-ultrasound-request.pdf"',
+        "Cache-Control": "no-store",
+      },
     });
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
     });
   }
 });
