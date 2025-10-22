@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { PDFDocument, rgb, StandardFonts } from 'https://esm.sh/pdf-lib@1.17.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -30,279 +31,225 @@ Deno.serve(async (req) => {
       throw new Error('Imaging request not found');
     }
 
-    console.log('Request data fetched:', request);
-
-    // Fetch the requesting practitioner's profile separately
-    const { data: practitionerProfile, error: profileError } = await supabase
+    // Fetch practitioner profile
+    const { data: practitionerProfile } = await supabase
       .from('profiles')
       .select('full_name, phone')
       .eq('id', request.requested_by)
       .single();
 
-    if (profileError) {
-      console.error('Error fetching practitioner profile:', profileError);
-    }
-
-    const requestedByProfile = practitionerProfile || { full_name: 'Unknown', phone: null };
-
-    // Parse clinical notes
+    const requestedBy = practitionerProfile || { full_name: 'Unknown', phone: null };
     const clinicalNotes = JSON.parse(request.clinical_notes || '{}');
-    
-    // Format patient name
     const patientName = `${request.patient.first_name} ${request.patient.last_name}`;
+    const currentDate = new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Create PDF
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const { width, height } = page.getSize();
     
-    // Get current date
-    const currentDate = new Date().toLocaleDateString('en-ZA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    let y = height - 40;
+    const leftMargin = 40;
+    const rightMargin = width - 40;
+    const lineHeight = 14;
 
-    // Get selected test IDs for easy lookup
-    const selectedTestIds = new Set(request.tests_requested.map((t: any) => t.id));
-
-    // Define all regions with their codes (matching the form)
-    const allXRayRegions = [
-      { category: 'CHEST AND ABDOMEN', items: [
-        { id: 'chest', label: 'Chest', code: '3445' },
-        { id: 'chest-ribs', label: 'Chest and Ribs', code: '3449' },
-        { id: 'abdomen', label: 'Abdomen', code: '3477' },
-        { id: 'acute-abdomen', label: 'Acute Abdomen', code: '3479' },
-        { id: 'thoracic-inlet', label: 'Thoracic inlet', code: '0000' },
-        { id: 'kub', label: 'KUB', code: '0000' },
-      ]},
-      { category: 'UPPER EXTREMITIES', items: [
-        { id: 'finger', label: 'Finger', code: '3305' },
-        { id: 'hand', label: 'Hand', code: '3305' },
-        { id: 'wrist', label: 'Wrist', code: '3305' },
-        { id: 'forearm', label: 'Forearm', code: '3367' },
-        { id: 'elbow', label: 'Elbow', code: '3907' },
-        { id: 'humerus', label: 'Humerus', code: '3907' },
-        { id: 'shoulder', label: 'Shoulder', code: '3907' },
-        { id: 'clavicle', label: 'Clavicle', code: '3907' },
-        { id: 'scapula', label: 'Scapula', code: '3907' },
-      ]},
-      { category: 'LOWER EXTREMITIES', items: [
-        { id: 'toe', label: 'Toe', code: '3305' },
-        { id: 'foot', label: 'Foot', code: '3307' },
-        { id: 'ankle', label: 'Ankle', code: '3307' },
-        { id: 'tibia-fibula', label: 'Tibia & Fibula', code: '3307' },
-        { id: 'knee', label: 'Knee', code: '3307' },
-        { id: 'femur', label: 'Femur', code: '3307' },
-        { id: 'hip', label: 'Hip', code: '3307' },
-        { id: 'pelvis', label: 'Pelvis', code: '3331' },
-        { id: 'sacroiliac', label: 'Sacroiliac Joints', code: '3321' },
-      ]},
-      { category: 'SPINE AND PELVIS', items: [
-        { id: 'cervical-spine', label: 'Cervical Spine', code: '3321' },
-        { id: 'thoracic-spine', label: 'Thoracic Spine', code: '3321' },
-        { id: 'lumbar-spine', label: 'Lumbar Spine', code: '3321' },
-        { id: 'sacrum', label: 'Sacrum', code: '3321' },
-        { id: 'coccyx', label: 'Coccyx', code: '3321' },
-        { id: 'whole-spine-pelvis', label: 'Whole Spine & Pelvis', code: '3321' },
-        { id: 'skeletal-survey', label: 'Skeletal Survey', code: '3317' },
-        { id: 'pelvis-spine', label: 'Pelvis', code: '0000' },
-        { id: 'hips', label: 'Hips', code: '0000' },
-      ]},
-      { category: 'HEAD AND NECK', items: [
-        { id: 'skull', label: 'Skull', code: '3349' },
-        { id: 'sinuses', label: 'Sinuses', code: '3351' },
-        { id: 'post-nasal', label: 'Post Nasal', code: '3385' },
-        { id: 'mandible', label: 'Mandible', code: '3355' },
-        { id: 'tmj', label: 'TMJ', code: '3367' },
-        { id: 'facial-bones', label: 'Facial Bones', code: '3353' },
-        { id: 'nasal-bone', label: 'Nasal Bone', code: '3357' },
-        { id: 'mastoids', label: 'Mastoids', code: '3359' },
-        { id: 'soft-tissue-neck', label: 'Soft Tissue Neck', code: '3443' },
-        { id: 'sternum', label: 'Sternum', code: '3451' },
-      ]},
-      { category: 'SPECIAL EXAMS', items: [
-        { id: 'barium-swallow', label: 'Barium Swallow', code: '3399' },
-        { id: 'barium-meal', label: 'Barium Meal', code: '3403' },
-        { id: 'barium-enema', label: 'Barium Enema', code: '3409' },
-        { id: 'ivu', label: 'IVU', code: '3487' },
-        { id: 'urethrogram', label: 'Urethrogram', code: '3499' },
-        { id: 'cystogram', label: 'Cystogram', code: '3497' },
-        { id: 'hsg', label: 'HSG', code: '3519' },
-        { id: 'venogram', label: 'Venogram', code: '3345' },
-      ]},
-    ];
-
-    const allUltrasoundRegions = [
-      { id: 'us-abdomen', label: 'Abdomen', code: '3627' },
-      { id: 'us-renal', label: 'Renal Tract', code: '3628' },
-      { id: 'us-pelvis-ta', label: 'Pelvis Transabdominal', code: '3618' },
-      { id: 'us-pelvis-tv', label: 'Pelvis Organs: Transvaginal', code: '5100' },
-      { id: 'us-soft-tissue', label: 'Soft Tissue', code: '3629' },
-      { id: 'us-obstetric', label: 'Obstetric', code: '3615' },
-      { id: 'us-obstetric-fu', label: 'Obstetric F/UP', code: '3617' },
-      { id: 'us-thyroid', label: 'Thyroid', code: '3629' },
-      { id: 'us-scrotum', label: 'Scrotum', code: '3629' },
-      { id: 'us-breast', label: 'Breast', code: '3629' },
-      { id: 'us-prostate-ta', label: 'Prostate Transabdominal', code: '3629' },
-    ];
-
-    // Build examination checklist
-    let examinationsSection = '';
-    if (clinicalNotes.imagingType === 'xray') {
-      allXRayRegions.forEach(category => {
-        examinationsSection += `\n${category.category}:\n`;
-        category.items.forEach(item => {
-          const isSelected = selectedTestIds.has(item.id);
-          examinationsSection += `  ${isSelected ? '[X]' : '[ ]'} ${item.label} (Code: ${item.code})\n`;
-        });
+    // Helper functions
+    const drawText = (text: string, x: number, yPos: number, options: any = {}) => {
+      page.drawText(text, {
+        x,
+        y: yPos,
+        size: options.size || 10,
+        font: options.bold ? boldFont : font,
+        color: rgb(0, 0, 0),
+        ...options,
       });
-    } else {
-      examinationsSection += '\nULTRASOUND EXAMINATIONS:\n';
-      allUltrasoundRegions.forEach(item => {
-        const isSelected = selectedTestIds.has(item.id);
-        examinationsSection += `  ${isSelected ? '[X]' : '[ ]'} ${item.label} (Code: ${item.code})\n`;
+    };
+
+    const drawLine = (x1: number, y1: number, x2: number, y2: number) => {
+      page.drawLine({
+        start: { x: x1, y: y1 },
+        end: { x: x2, y: y2 },
+        thickness: 0.5,
+        color: rgb(0.3, 0.3, 0.3),
       });
+    };
+
+    const drawBox = (x: number, y: number, w: number, h: number, filled = false) => {
+      page.drawRectangle({
+        x, y, width: w, height: h,
+        borderColor: rgb(0.3, 0.3, 0.3),
+        borderWidth: 1,
+        color: filled ? rgb(0, 0, 0) : undefined,
+      });
+    };
+
+    const drawCheckbox = (x: number, y: number, checked: boolean) => {
+      drawBox(x, y, 10, 10);
+      if (checked) {
+        drawText('✓', x + 1, y + 1, { size: 8, bold: true });
+      }
+    };
+
+    // Title
+    drawText('DIAGNOSTIC IMAGING REQUEST FORM', leftMargin, y, { size: 16, bold: true });
+    y -= 20;
+    drawLine(leftMargin, y, rightMargin, y);
+    y -= 20;
+
+    // Header info
+    const examType = clinicalNotes.imagingType === 'xray' ? 'X-RAY' : 'ULTRASOUND';
+    drawText(`Examination Type: ${examType}`, leftMargin, y, { bold: true });
+    drawText(`Date: ${currentDate}`, rightMargin - 150, y);
+    y -= 25;
+
+    // Patient Information Section
+    drawText('PATIENT INFORMATION', leftMargin, y, { size: 11, bold: true });
+    y -= 15;
+    drawBox(leftMargin, y - 40, rightMargin - leftMargin, 45, false);
+    y -= 12;
+    
+    drawText(`Name: ${patientName}`, leftMargin + 5, y);
+    drawText(`ID: ${request.patient.sa_id_number || 'N/A'}`, leftMargin + 280, y);
+    y -= 12;
+    drawText(`DOB: ${request.patient.date_of_birth || 'N/A'}`, leftMargin + 5, y);
+    drawText(`Phone: ${request.patient.phone}`, leftMargin + 280, y);
+    y -= 12;
+    drawText(`Medical Aid: ${request.patient.medical_aid_provider || 'None'}`, leftMargin + 5, y);
+    if (request.patient.medical_aid_number) {
+      drawText(`Member #: ${request.patient.medical_aid_number}`, leftMargin + 280, y);
     }
+    y -= 25;
 
-    // Create PDF content
-    const pdfContent = `
-================================================================================
-              DIAGNOSTIC IMAGING REQUEST FORM
-================================================================================
-
-Date: ${currentDate}
-Request Type: ${clinicalNotes.imagingType === 'xray' ? 'X-RAY' : 'ULTRASOUND'}
-
---------------------------------------------------------------------------------
-PATIENT INFORMATION
---------------------------------------------------------------------------------
-Name: ${patientName}
-ID Number: ${request.patient.sa_id_number || 'N/A'}
-Date of Birth: ${request.patient.date_of_birth || 'N/A'}
-Contact: ${request.patient.phone}
-Medical Aid: ${request.patient.medical_aid_provider || 'None'} 
-${request.patient.medical_aid_number ? `Member Number: ${request.patient.medical_aid_number}` : ''}
-
---------------------------------------------------------------------------------
-EXAMINATION(S) REQUESTED
---------------------------------------------------------------------------------
-${examinationsSection}
-
---------------------------------------------------------------------------------
-CLINICAL INFORMATION
---------------------------------------------------------------------------------
-Brief Clinical History:
-${clinicalNotes.clinicalHistory || 'N/A'}
-
-Clinical Indication / Reason for Examination:
-${clinicalNotes.clinicalIndication}
-
-Relevant Clinical Findings:
-${clinicalNotes.relevantFindings || 'N/A'}
-
-Provisional Diagnosis:
-${clinicalNotes.provisionalDiagnosis || 'N/A'}
-
---------------------------------------------------------------------------------
-ADDITIONAL INFORMATION
---------------------------------------------------------------------------------
-Pregnancy Status: ${clinicalNotes.pregnancy?.status ? `[X] Yes (${clinicalNotes.pregnancy.weeks} weeks)` : '[X] No / N/A'}
-Contrast Required: ${clinicalNotes.contrast ? '[X] Yes  [ ] No' : '[ ] Yes  [X] No'}
-Known Allergies: ${clinicalNotes.allergies || 'None'}
-Urgency Level: ${clinicalNotes.urgency === 'routine' ? '[X] Routine  [ ] Urgent  [ ] Emergency' : 
-                 clinicalNotes.urgency === 'urgent' ? '[ ] Routine  [X] Urgent  [ ] Emergency' :
-                 '[ ] Routine  [ ] Urgent  [X] Emergency'}
-
---------------------------------------------------------------------------------
-REQUESTING PRACTITIONER
---------------------------------------------------------------------------------
-Name: ${requestedByProfile.full_name}
-Contact: ${requestedByProfile.phone || 'N/A'}
-Date: ${currentDate}
-
-================================================================================
-This is an official diagnostic imaging request.
-Please process according to the specified urgency level.
-
-Request ID: ${requestId}
-================================================================================
-`;
-
-    console.log('PDF content prepared');
-
-    // Convert to base64 PDF (simplified text-based PDF)
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pdfContent);
-    const base64 = btoa(String.fromCharCode(...data));
-
-    // Create a simple text-based PDF
-    const pdfHeader = '%PDF-1.4\n';
-    const pdfBody = `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 612 792] /Contents 5 0 R >>\nendobj\n4 0 obj\n<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Courier >> >> >>\nendobj\n5 0 obj\n<< /Length ${pdfContent.length} >>\nstream\nBT\n/F1 10 Tf\n50 750 Td\n`;
+    // Examinations Section
+    drawText('EXAMINATIONS REQUESTED', leftMargin, y, { size: 11, bold: true });
+    y -= 15;
     
-    const lines = pdfContent.split('\n');
-    let pdfText = '';
-    lines.forEach((line, index) => {
-      pdfText += `(${line.replace(/[()\\]/g, '\\$&')}) Tj\n0 -12 Td\n`;
+    const selectedIds = new Set(request.tests_requested.map((t: any) => t.id));
+    
+    const regions: any[] = clinicalNotes.imagingType === 'xray' 
+      ? [
+          { cat: 'Chest/Abd', items: ['chest:3445', 'abdomen:3477', 'kub:0000'] },
+          { cat: 'Upper Ext', items: ['hand:3305', 'wrist:3305', 'elbow:3907', 'shoulder:3907'] },
+          { cat: 'Lower Ext', items: ['foot:3307', 'ankle:3307', 'knee:3307', 'hip:3307'] },
+          { cat: 'Spine', items: ['cervical-spine:3321', 'thoracic-spine:3321', 'lumbar-spine:3321'] },
+          { cat: 'Head/Neck', items: ['skull:3349', 'sinuses:3351', 'mandible:3355'] },
+        ]
+      : [
+          { cat: 'Ultrasound', items: ['us-abdomen:3627', 'us-renal:3628', 'us-pelvis-ta:3618', 'us-obstetric:3615', 'us-thyroid:3629'] },
+        ];
+
+    const boxHeight = 60;
+    drawBox(leftMargin, y - boxHeight, rightMargin - leftMargin, boxHeight);
+    y -= 10;
+
+    let xPos = leftMargin + 10;
+    regions.forEach((category, idx) => {
+      if (idx > 0 && idx % 3 === 0) {
+        y -= 20;
+        xPos = leftMargin + 10;
+      }
+      
+      drawText(category.cat + ':', xPos, y, { size: 8, bold: true });
+      let itemY = y - 10;
+      category.items.forEach((item: string) => {
+        const [id, code] = item.split(':');
+        const label = id.replace(/-/g, ' ').replace('us ', '');
+        const checked = selectedIds.has(id);
+        drawCheckbox(xPos, itemY - 2, checked);
+        drawText(label.substring(0, 12), xPos + 13, itemY, { size: 7 });
+        itemY -= 9;
+      });
+      xPos += 170;
     });
     
-    const pdfFooter = `ET\nendstream\nendobj\nxref\n0 6\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000214 00000 n\n0000000304 00000 n\ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${(pdfHeader + pdfBody + pdfText + 'ET\nendstream\nendobj').length}\n%%EOF`;
+    y -= boxHeight - 5;
+
+    // Clinical Information
+    drawText('CLINICAL INFORMATION', leftMargin, y, { size: 11, bold: true });
+    y -= 12;
+    drawText(`Indication: ${clinicalNotes.clinicalIndication?.substring(0, 80) || 'N/A'}`, leftMargin + 5, y, { size: 9 });
+    y -= 10;
+    drawText(`History: ${clinicalNotes.clinicalHistory?.substring(0, 80) || 'N/A'}`, leftMargin + 5, y, { size: 9 });
+    y -= 10;
+    drawText(`Findings: ${clinicalNotes.relevantFindings?.substring(0, 80) || 'N/A'}`, leftMargin + 5, y, { size: 9 });
+    y -= 10;
+    drawText(`Diagnosis: ${clinicalNotes.provisionalDiagnosis || 'N/A'}`, leftMargin + 5, y, { size: 9 });
+    y -= 20;
+
+    // Additional Info
+    drawText('ADDITIONAL INFORMATION', leftMargin, y, { size: 11, bold: true });
+    y -= 15;
+    drawBox(leftMargin, y - 30, rightMargin - leftMargin, 32);
+    y -= 10;
     
-    const fullPdf = pdfHeader + pdfBody + pdfText + pdfFooter;
-    const pdfBytes = encoder.encode(fullPdf);
+    const pregnancy = clinicalNotes.pregnancy?.status;
+    drawCheckbox(leftMargin + 5, y - 2, !pregnancy);
+    drawText('Not Pregnant', leftMargin + 18, y, { size: 9 });
+    drawCheckbox(leftMargin + 100, y - 2, pregnancy);
+    drawText(pregnancy ? `Pregnant (${clinicalNotes.pregnancy.weeks}w)` : 'Pregnant', leftMargin + 113, y, { size: 9 });
+    
+    drawCheckbox(leftMargin + 220, y - 2, !clinicalNotes.contrast);
+    drawText('No Contrast', leftMargin + 233, y, { size: 9 });
+    drawCheckbox(leftMargin + 310, y - 2, clinicalNotes.contrast);
+    drawText('Contrast Req', leftMargin + 323, y, { size: 9 });
+    
+    y -= 12;
+    drawText(`Allergies: ${clinicalNotes.allergies || 'None'}`, leftMargin + 5, y, { size: 9 });
+    drawText(`Urgency: ${clinicalNotes.urgency || 'Routine'}`, leftMargin + 300, y, { size: 9, bold: true });
+    y -= 25;
+
+    // Requesting Practitioner
+    drawText('REQUESTING PRACTITIONER', leftMargin, y, { size: 11, bold: true });
+    y -= 12;
+    drawText(`Name: ${requestedBy.full_name}`, leftMargin + 5, y, { size: 9 });
+    drawText(`Contact: ${requestedBy.phone || 'N/A'}`, leftMargin + 280, y, { size: 9 });
+    y -= 10;
+    drawText(`Date: ${currentDate}`, leftMargin + 5, y, { size: 9 });
+    y -= 20;
+
+    // Footer
+    drawLine(leftMargin, y, rightMargin, y);
+    y -= 12;
+    drawText('This is an official diagnostic imaging request', leftMargin, y, { size: 8 });
+    drawText(`Request ID: ${requestId.substring(0, 18)}...`, rightMargin - 150, y, { size: 7 });
+
+    // Save PDF
+    const pdfBytes = await pdfDoc.save();
 
     // Upload to storage
     const fileName = `imaging_request_${patientName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('prescriptions')
       .upload(`imaging-requests/${fileName}`, pdfBytes, {
         contentType: 'application/pdf',
         upsert: false,
       });
 
-    if (uploadError) {
-      console.error('Error uploading PDF:', uploadError);
-      throw uploadError;
-    }
+    if (uploadError) throw uploadError;
 
-    console.log('PDF uploaded:', uploadData);
-
-    // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('prescriptions')
       .getPublicUrl(`imaging-requests/${fileName}`);
 
-    console.log('Public URL:', publicUrl);
-
-    // Update the diagnostic request with the PDF URL
-    const { error: updateError } = await supabase
+    // Update request with PDF URL
+    await supabase
       .from('diagnostic_requests')
       .update({ pdf_url: publicUrl })
       .eq('id', requestId);
 
-    if (updateError) {
-      console.error('Error updating request:', updateError);
-      throw updateError;
-    }
-
-    console.log('Request updated with PDF URL');
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        pdfUrl: publicUrl,
-        message: 'Imaging request PDF generated successfully' 
-      }),
+      JSON.stringify({ success: true, pdfUrl: publicUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in generate-imaging-request-pdf:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: errorMessage 
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ success: false, error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
