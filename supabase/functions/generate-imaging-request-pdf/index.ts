@@ -407,7 +407,18 @@ async function renderPdf(body: any) {
 // --------------------- HTTP HANDLER ---------------------
 Deno.serve(async (req) => {
   try {
-    const { requestId } = await req.json();
+    // Parse request body with error handling
+    let requestId: string | undefined;
+    try {
+      const body = await req.json();
+      requestId = body.requestId;
+    } catch (jsonError) {
+      console.error("Error parsing request body:", jsonError);
+      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     
     if (!requestId) {
       return new Response(JSON.stringify({ error: "requestId is required" }), {

@@ -15,7 +15,27 @@ serve(async (req) => {
 
   try {
     console.log('Starting PDF generation...');
-    const { prescriptionId } = await req.json();
+    
+    // Parse request body with error handling
+    let prescriptionId: string | undefined;
+    try {
+      const body = await req.json();
+      prescriptionId = body.prescriptionId;
+    } catch (jsonError) {
+      console.error("Error parsing request body:", jsonError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!prescriptionId) {
+      return new Response(
+        JSON.stringify({ error: 'Prescription ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     console.log('Prescription ID:', prescriptionId);
 
     const supabaseClient = createClient(

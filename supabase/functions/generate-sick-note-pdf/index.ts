@@ -18,10 +18,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { sickNoteId } = await req.json();
+    // Parse request body with error handling
+    let sickNoteId: string | undefined;
+    try {
+      const body = await req.json();
+      sickNoteId = body.sickNoteId;
+    } catch (jsonError) {
+      console.error("Error parsing request body:", jsonError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!sickNoteId) {
-      throw new Error('Sick note ID is required');
+      return new Response(
+        JSON.stringify({ error: 'Sick note ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('Generating PDF for sick note:', sickNoteId);
