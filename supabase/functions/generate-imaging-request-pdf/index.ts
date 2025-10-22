@@ -1,39 +1,26 @@
-// index.ts — Supabase Edge Function (Deno) using pdf-lib
-// Renders a PDF that matches the provided "X-RAY AND ULTRASOUND REQUEST FORM" design.
+// supabase/functions/generate-imaging-request-pdf/index.ts
+// Deno + pdf-lib Edge Function — renders the imaging request form
 
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
-// ---------- CONFIG ----------
-const PAGE = {
-  // A4 portrait
-  width: 595.28,
-  height: 841.89,
-  margin: 24,
-};
+// --------------------- PAGE + COLORS ---------------------
+const PAGE = { width: 595.28, height: 841.89, margin: 24 }; // A4 portrait
 const COLORS = {
   black: rgb(0, 0, 0),
-  grayDark: rgb(0.2, 0.2, 0.2),
-  gray: rgb(0.5, 0.5, 0.5),
-  grayLight: rgb(0.9, 0.9, 0.9),
   gridHeader: rgb(0.95, 0.95, 0.95),
-  // header band similar to image
   primeGreen: rgb(0.62, 0.78, 0.15),
   sectionTeal: rgb(0.84, 0.94, 0.94),
   sectionGreen: rgb(0.89, 0.96, 0.89),
   sectionBlue: rgb(0.88, 0.93, 0.98),
   footerBar: rgb(0.88, 0.93, 0.98),
+  grayDark: rgb(0.2, 0.2, 0.2),
 };
 
-// ---------- DATA (codes & parts) ----------
+// --------------------- DATA ---------------------
 type Row = { code: string; part: string };
 type Section = { title: string; tint: "teal" | "green" | "blue" | null; rows: Row[] };
 type Panel = { sections: Section[] };
-
-const TINT = {
-  teal: COLORS.sectionTeal,
-  green: COLORS.sectionGreen,
-  blue: COLORS.sectionBlue,
-};
 
 const LEFT_PANEL: Panel = {
   sections: [
@@ -98,7 +85,7 @@ const MIDDLE_PANEL: Panel = {
         { code: "3317", part: "Skeletal Survey" },
         { code: "0000", part: "Pelvis" },
         { code: "0000", part: "Hips" },
-        { code: "0000", part: "Skeletal Survey <=5 years old" },
+        { code: "0000", part: "Skeletal Survey ≤5 years old" },
         { code: "0000", part: "Skeletal Survey >5 years old" },
       ],
     },
@@ -170,7 +157,7 @@ const RIGHT_PANEL: Panel = {
   ],
 };
 
-// ---------- HELPERS ----------
+// --------------------- UTIL ---------------------
 function keyFor(r: Row) {
   return [`${r.code}`, `${r.code}:${r.part}`];
 }
@@ -185,8 +172,18 @@ function drawTickBox(page: any, x: number, centerY: number, size = 10, checked =
   }
 }
 
-function drawInput(page: any, font: any, label: string, x: number, yTop: number, w: number, h = 16, value?: string) {
-  page.drawText(label, { x, y: yTop + 3, size: 8, font });
+function drawInput(
+  page: any,
+  font: any,
+  label: string,
+  x: number,
+  yTop: number,
+  w: number,
+  h = 16,
+  value?: string,
+  bold?: any,
+) {
+  page.drawText(label, { x, y: yTop + 3, size: 8, font: bold ?? font });
   const y = yTop - h;
   page.drawRectangle({ x, y, width: w, height: h, borderWidth: 1 });
   if (value) {
@@ -200,24 +197,30 @@ function drawUnderlineText(page: any, font: any, label: string, x: number, y: nu
   page.drawLine({ start: { x, y: underlineY }, end: { x: x + w, y: underlineY }, thickness: 1 });
 }
 
-// ---------- MAIN RENDER ----------
+// --------------------- RENDER ---------------------
 async function renderPdf(body: any) {
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+
+  // Load Unicode fonts (TTF from GitHub)
+  const regularBytes = await (
+    await fetch(
+      "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf",
+    )
+  ).arrayBuffer();
+  const boldBytes = await (
+    await fetch("https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf")
+  ).arrayBuffer();
+
+  const font = await pdf.embedFont(new Uint8Array(regularBytes), { subset: true });
+  const fontBold = await pdf.embedFont(new Uint8Array(boldBytes), { subset: true });
+
   const page = pdf.addPage([PAGE.width, PAGE.height]);
   const { width, height } = page.getSize();
 
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-
-  // -- Header band
+  // Header band
   const bandH = 28;
-  page.drawRectangle({
-    x: 0,
-    y: height - bandH - 18,
-    width,
-    height: bandH,
-    color: COLORS.primeGreen,
-  });
+  page.drawRectangle({ x: 0, y: height - bandH - 18, width, height: bandH, color: COLORS.primeGreen });
   page.drawText("X-RAY AND ULTRASOUND REQUEST FORM", {
     x: PAGE.margin,
     y: height - bandH - 6,
@@ -226,52 +229,45 @@ async function renderPdf(body: any) {
     color: COLORS.black,
   });
 
-  // Logo (Medi Response)
+  // Logo
   try {
-    const logoRes = await fetch("https://mediresponse.co.za/wp-content/uploads/2021/06/Medi-Response-Long-Logo.png");
-    const logoBytes = await logoRes.arrayBuffer();
-    const logo = await pdf.embedPng(logoBytes);
+    const res = await fetch("https://mediresponse.co.za/wp-content/uploads/2021/06/Medi-Response-Long-Logo.png");
+    const bytes = await res.arrayBuffer();
+    const img = await pdf.embedPng(bytes);
     const logoW = 150;
-    const logoH = (logoW / logo.width) * logo.height;
-    page.drawImage(logo, {
-      x: width - PAGE.margin - logoW,
-      y: height - bandH - 10,
-      width: logoW,
-      height: logoH,
-    });
+    const logoH = (logoW / img.width) * img.height;
+    page.drawImage(img, { x: width - PAGE.margin - logoW, y: height - bandH - 10, width: logoW, height: logoH });
   } catch {
-    // Logo loading failed; continue without blocking
+    /* ignore */
   }
 
-  // -- Patient details block
+  // Patient details
   let y = height - bandH - 40;
   const left = PAGE.margin;
-  const colGap = 10;
+  const gap = 10;
 
-  // Top row: Name, Sex, LNMP
+  // Row 1
   const nameW = 250;
-  drawInput(page, font, "Name:", left, y, nameW, 16, body?.patient?.name);
+  drawInput(page, font, "Name:", left, y, nameW, 16, body?.patient?.name, fontBold);
   const sexW = 60;
-  drawInput(page, font, "Sex:", left + nameW + colGap, y, sexW, 16, body?.patient?.sex);
+  drawInput(page, font, "Sex:", left + nameW + gap, y, sexW, 16, body?.patient?.sex, fontBold);
   const lnmpW = 90;
-  drawInput(page, font, "LNMP:", left + nameW + colGap + sexW + colGap, y, lnmpW, 16, body?.patient?.lnmp);
+  drawInput(page, font, "LNMP:", left + nameW + gap + sexW + gap, y, lnmpW, 16, body?.patient?.lnmp, fontBold);
 
-  // Row 2: ID, DOB, Date
+  // Row 2
   y -= 26;
   const idW = 180;
-  drawInput(page, font, "I.D. Number:", left, y, idW, 16, body?.patient?.idNumber);
+  drawInput(page, font, "I.D. Number:", left, y, idW, 16, body?.patient?.idNumber, fontBold);
   const dobW = 150;
-  drawInput(page, font, "DOB:", left + idW + colGap, y, dobW, 16, body?.patient?.dob);
+  drawInput(page, font, "DOB:", left + idW + gap, y, dobW, 16, body?.patient?.dob, fontBold);
   const dateW = 150;
-  drawInput(page, font, "Date:", left + idW + colGap + dobW + colGap, y, dateW, 16, body?.patient?.date);
+  drawInput(page, font, "Date:", left + idW + gap + dobW + gap, y, dateW, 16, body?.patient?.date, fontBold);
 
-  // Row 3: Private checkbox + Medical Aid checkbox and inputs
+  // Row 3: Private & Medical Aid
   y -= 26;
-  // Private
   page.drawText("Private:", { x: left, y: y + 3, size: 10, font });
   drawTickBox(page, left + 46, y + 8, 10, !!body?.patient?.private);
 
-  // Medical aid checkbox + name + number
   const maX = left + 80;
   page.drawText("Medical Aid:", { x: maX, y: y + 3, size: 10, font });
   drawTickBox(page, maX + 68, y + 8, 10, !!body?.patient?.medicalAid?.isMember);
@@ -279,22 +275,17 @@ async function renderPdf(body: any) {
   const maNameX = maX + 88;
   const maNameW = 180;
   drawInput(page, font, "Name of Medical Aid", maNameX, y + 12, maNameW, 16, body?.patient?.medicalAid?.name || "");
-  const maNumX = maNameX + maNameW + colGap;
+  const maNumX = maNameX + maNameW + gap;
   const maNumW = 160;
   drawInput(page, font, "Medical Aid Number:", maNumX, y + 12, maNumW, 16, body?.patient?.medicalAid?.number || "");
 
-  // Caption before grid
+  // Caption
   y -= 18;
-  page.drawText("Tick organ / region to be examined", {
-    x: left,
-    y,
-    size: 10,
-    font,
-  });
+  page.drawText("Tick organ / region to be examined", { x: left, y, size: 10, font });
 
-  // ---- GRID (3 columns) ----
+  // Grid
   const gridTop = y - 12;
-  const colWidth = (width - PAGE.margin * 2 - colGap * 2) / 3;
+  const colWidth = (width - PAGE.margin * 2 - gap * 2) / 3;
   const rowH = 18;
   const headerH = 18;
   const codeW = 54;
@@ -307,30 +298,37 @@ async function renderPdf(body: any) {
     page.drawText("CODE", { x: x + 6, y: topY - 13, size: 10, font: fontBold });
     page.drawText("PART", { x: x + codeW + 6, y: topY - 13, size: 10, font: fontBold });
     page.drawText("TICK", { x: x + w - tickW + 10, y: topY - 13, size: 10, font: fontBold });
-    // verticals
     page.drawLine({ start: { x: x + codeW, y: topY - headerH }, end: { x: x + codeW, y: topY }, thickness: 1 });
     page.drawLine({ start: { x: x + w - tickW, y: topY - headerH }, end: { x: x + w - tickW, y: topY }, thickness: 1 });
   }
 
-  function drawSectionTitle(x: number, topY: number, w: number, title: string, tint: keyof typeof TINT | null) {
+  function drawSectionTitle(x: number, topY: number, w: number, title: string, tint: "teal" | "green" | "blue" | null) {
     const h = 18;
-    page.drawRectangle({ x, y: topY - h, width: w, height: h, color: tint ? TINT[tint] : undefined, borderWidth: 1 });
+    const color =
+      tint === "teal"
+        ? COLORS.sectionTeal
+        : tint === "green"
+          ? COLORS.sectionGreen
+          : tint === "blue"
+            ? COLORS.sectionBlue
+            : undefined;
+
+    page.drawRectangle({ x, y: topY - h, width: w, height: h, color, borderWidth: 1 });
     page.drawText(title, { x: x + 6, y: topY - 13, size: 10, font: fontBold });
     return h;
   }
 
   function drawRows(x: number, yStart: number, w: number, rows: Row[]) {
-    let y0 = yStart;
+    let yy = yStart;
     for (const r of rows) {
-      page.drawRectangle({ x, y: y0 - rowH, width: w, height: rowH, borderWidth: 1 });
-      page.drawText(r.code, { x: x + 6, y: y0 - 13, size: 10, font });
-      page.drawText(r.part, { x: x + codeW + 6, y: y0 - 13, size: 10, font });
-
+      page.drawRectangle({ x, y: yy - rowH, width: w, height: rowH, borderWidth: 1 });
+      page.drawText(r.code, { x: x + 6, y: yy - 13, size: 10, font });
+      page.drawText(r.part, { x: x + codeW + 6, y: yy - 13, size: 10, font });
       const isChecked = keyFor(r).some((k) => selected.has(k));
-      drawTickBox(page, x + w - tickW + 12, y0 - rowH / 2, 10, isChecked);
-      y0 -= rowH;
+      drawTickBox(page, x + w - tickW + 12, yy - rowH / 2, 10, isChecked);
+      yy -= rowH;
     }
-    return y0;
+    return yy;
   }
 
   function drawPanel(x: number, topY: number, panel: Panel) {
@@ -341,18 +339,19 @@ async function renderPdf(body: any) {
       yy -= drawSectionTitle(x, yy, colWidth, sec.title, sec.tint);
       yy = drawRows(x, yy, colWidth, sec.rows);
     }
+    return yy;
   }
 
   const x1 = PAGE.margin;
-  const x2 = PAGE.margin + colWidth + colGap;
-  const x3 = PAGE.margin + (colWidth + colGap) * 2;
+  const x2 = PAGE.margin + colWidth + gap;
+  const x3 = PAGE.margin + (colWidth + gap) * 2;
 
-  drawPanel(x1, gridTop, LEFT_PANEL);
-  drawPanel(x2, gridTop, MIDDLE_PANEL);
-  drawPanel(x3, gridTop, RIGHT_PANEL);
+  let bottomY = drawPanel(x1, gridTop, LEFT_PANEL);
+  bottomY = Math.min(bottomY, drawPanel(x2, gridTop, MIDDLE_PANEL));
+  bottomY = Math.min(bottomY, drawPanel(x3, gridTop, RIGHT_PANEL));
 
-  // --- Footnote
-  const footnoteY = gridTop - 18 - headerH - 360; // rough spacing; form has long grid
+  // Footnote
+  const footnoteY = bottomY - 14;
   page.drawText("*If you are pregnant or suspect to be pregnant, please inform your doctor or radiographer", {
     x: PAGE.margin,
     y: footnoteY,
@@ -361,10 +360,10 @@ async function renderPdf(body: any) {
     color: COLORS.grayDark,
   });
 
-  // --- Clinical History box
-  let chTop = footnoteY - 18;
+  // Clinical History
+  let chTop = footnoteY - 20;
   page.drawText("Clinical History", { x: PAGE.margin, y: chTop, size: 10, font: fontBold });
-  const chH = 70;
+  const chH = 72;
   page.drawRectangle({
     x: PAGE.margin,
     y: chTop - chH - 6,
@@ -383,8 +382,8 @@ async function renderPdf(body: any) {
     });
   }
 
-  // --- Doctor details
-  const docY = chTop - chH - 24;
+  // Doctor details
+  const docY = chTop - chH - 26;
   const nameW2 = 240;
   const prW = 180;
   drawUnderlineText(page, font, "Doctor's Name", PAGE.margin, docY, nameW2, docY - 4);
@@ -394,7 +393,7 @@ async function renderPdf(body: any) {
     page.drawText(body.doctor.practiceNumber, { x: PAGE.margin + nameW2 + 24 + 120, y: docY, size: 10, font });
   drawUnderlineText(page, font, "Signature", PAGE.margin + nameW2 + 24 + prW + 24, docY, 120, docY - 4);
 
-  // --- Footer contact bar (edit to your actual copy)
+  // Footer bar
   const fbH = 28;
   page.drawRectangle({ x: 0, y: 0, width, height: fbH, color: COLORS.footerBar });
   const footer =
@@ -404,7 +403,7 @@ async function renderPdf(body: any) {
   return await pdf.save();
 }
 
-// ---------- HTTP HANDLER ----------
+// --------------------- HTTP HANDLER ---------------------
 Deno.serve(async (req) => {
   try {
     const body = await (async () => {
@@ -414,10 +413,8 @@ Deno.serve(async (req) => {
         return {};
       }
     })();
-
     const bytes = await renderPdf(body);
-
-    return new Response(bytes as unknown as BodyInit, {
+    return new Response(bytes, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": 'inline; filename="xray-ultrasound-request.pdf"',
