@@ -2,6 +2,11 @@
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 const PAGE = { width: 595.28, height: 841.89, margin: 24 }; // A4 portrait
 const COLORS = {
   black: rgb(0, 0, 0),
@@ -374,31 +379,27 @@ async function renderPdf(body: any) {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // Check if the request has a body
-    const contentType = req.headers.get('content-type');
-    console.log('Request content-type:', contentType);
     console.log('Request method:', req.method);
+    console.log('Request content-type:', req.headers.get('content-type'));
     
     let requestId;
     
-    // Handle both GET and POST requests
-    if (req.method === 'POST' && contentType?.includes('application/json')) {
-      const body = await req.json();
-      console.log('Request body:', body);
-      requestId = body.requestId;
-    } else {
-      // Try to get from URL params as fallback
-      const url = new URL(req.url);
-      requestId = url.searchParams.get('requestId');
-      console.log('Request ID from URL:', requestId);
-    }
+    // Parse request body
+    const body = await req.json();
+    console.log('Request body:', body);
+    requestId = body.requestId;
 
     if (!requestId) {
-      console.error('No requestId provided');
+      console.error('No requestId provided in body');
       return new Response(JSON.stringify({ error: "requestId is required" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -431,7 +432,7 @@ Deno.serve(async (req) => {
         details: fetchError?.message 
       }), {
         status: 404,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -516,13 +517,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ pdfUrl: publicUrl }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error('PDF generation error:', err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
