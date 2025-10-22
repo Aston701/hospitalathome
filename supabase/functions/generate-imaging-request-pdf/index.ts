@@ -58,30 +58,137 @@ Deno.serve(async (req) => {
       day: 'numeric'
     });
 
-    // Build tests list with codes
-    const testsList = request.tests_requested
-      .map((test: any) => `${test.label} (Code: ${test.code})`)
-      .join('\n');
+    // Get selected test IDs for easy lookup
+    const selectedTestIds = new Set(request.tests_requested.map((t: any) => t.id));
+
+    // Define all regions with their codes (matching the form)
+    const allXRayRegions = [
+      { category: 'CHEST AND ABDOMEN', items: [
+        { id: 'chest', label: 'Chest', code: '3445' },
+        { id: 'chest-ribs', label: 'Chest and Ribs', code: '3449' },
+        { id: 'abdomen', label: 'Abdomen', code: '3477' },
+        { id: 'acute-abdomen', label: 'Acute Abdomen', code: '3479' },
+        { id: 'thoracic-inlet', label: 'Thoracic inlet', code: '0000' },
+        { id: 'kub', label: 'KUB', code: '0000' },
+      ]},
+      { category: 'UPPER EXTREMITIES', items: [
+        { id: 'finger', label: 'Finger', code: '3305' },
+        { id: 'hand', label: 'Hand', code: '3305' },
+        { id: 'wrist', label: 'Wrist', code: '3305' },
+        { id: 'forearm', label: 'Forearm', code: '3367' },
+        { id: 'elbow', label: 'Elbow', code: '3907' },
+        { id: 'humerus', label: 'Humerus', code: '3907' },
+        { id: 'shoulder', label: 'Shoulder', code: '3907' },
+        { id: 'clavicle', label: 'Clavicle', code: '3907' },
+        { id: 'scapula', label: 'Scapula', code: '3907' },
+      ]},
+      { category: 'LOWER EXTREMITIES', items: [
+        { id: 'toe', label: 'Toe', code: '3305' },
+        { id: 'foot', label: 'Foot', code: '3307' },
+        { id: 'ankle', label: 'Ankle', code: '3307' },
+        { id: 'tibia-fibula', label: 'Tibia & Fibula', code: '3307' },
+        { id: 'knee', label: 'Knee', code: '3307' },
+        { id: 'femur', label: 'Femur', code: '3307' },
+        { id: 'hip', label: 'Hip', code: '3307' },
+        { id: 'pelvis', label: 'Pelvis', code: '3331' },
+        { id: 'sacroiliac', label: 'Sacroiliac Joints', code: '3321' },
+      ]},
+      { category: 'SPINE AND PELVIS', items: [
+        { id: 'cervical-spine', label: 'Cervical Spine', code: '3321' },
+        { id: 'thoracic-spine', label: 'Thoracic Spine', code: '3321' },
+        { id: 'lumbar-spine', label: 'Lumbar Spine', code: '3321' },
+        { id: 'sacrum', label: 'Sacrum', code: '3321' },
+        { id: 'coccyx', label: 'Coccyx', code: '3321' },
+        { id: 'whole-spine-pelvis', label: 'Whole Spine & Pelvis', code: '3321' },
+        { id: 'skeletal-survey', label: 'Skeletal Survey', code: '3317' },
+        { id: 'pelvis-spine', label: 'Pelvis', code: '0000' },
+        { id: 'hips', label: 'Hips', code: '0000' },
+      ]},
+      { category: 'HEAD AND NECK', items: [
+        { id: 'skull', label: 'Skull', code: '3349' },
+        { id: 'sinuses', label: 'Sinuses', code: '3351' },
+        { id: 'post-nasal', label: 'Post Nasal', code: '3385' },
+        { id: 'mandible', label: 'Mandible', code: '3355' },
+        { id: 'tmj', label: 'TMJ', code: '3367' },
+        { id: 'facial-bones', label: 'Facial Bones', code: '3353' },
+        { id: 'nasal-bone', label: 'Nasal Bone', code: '3357' },
+        { id: 'mastoids', label: 'Mastoids', code: '3359' },
+        { id: 'soft-tissue-neck', label: 'Soft Tissue Neck', code: '3443' },
+        { id: 'sternum', label: 'Sternum', code: '3451' },
+      ]},
+      { category: 'SPECIAL EXAMS', items: [
+        { id: 'barium-swallow', label: 'Barium Swallow', code: '3399' },
+        { id: 'barium-meal', label: 'Barium Meal', code: '3403' },
+        { id: 'barium-enema', label: 'Barium Enema', code: '3409' },
+        { id: 'ivu', label: 'IVU', code: '3487' },
+        { id: 'urethrogram', label: 'Urethrogram', code: '3499' },
+        { id: 'cystogram', label: 'Cystogram', code: '3497' },
+        { id: 'hsg', label: 'HSG', code: '3519' },
+        { id: 'venogram', label: 'Venogram', code: '3345' },
+      ]},
+    ];
+
+    const allUltrasoundRegions = [
+      { id: 'us-abdomen', label: 'Abdomen', code: '3627' },
+      { id: 'us-renal', label: 'Renal Tract', code: '3628' },
+      { id: 'us-pelvis-ta', label: 'Pelvis Transabdominal', code: '3618' },
+      { id: 'us-pelvis-tv', label: 'Pelvis Organs: Transvaginal', code: '5100' },
+      { id: 'us-soft-tissue', label: 'Soft Tissue', code: '3629' },
+      { id: 'us-obstetric', label: 'Obstetric', code: '3615' },
+      { id: 'us-obstetric-fu', label: 'Obstetric F/UP', code: '3617' },
+      { id: 'us-thyroid', label: 'Thyroid', code: '3629' },
+      { id: 'us-scrotum', label: 'Scrotum', code: '3629' },
+      { id: 'us-breast', label: 'Breast', code: '3629' },
+      { id: 'us-prostate-ta', label: 'Prostate Transabdominal', code: '3629' },
+    ];
+
+    // Build examination checklist
+    let examinationsSection = '';
+    if (clinicalNotes.imagingType === 'xray') {
+      allXRayRegions.forEach(category => {
+        examinationsSection += `\n${category.category}:\n`;
+        category.items.forEach(item => {
+          const isSelected = selectedTestIds.has(item.id);
+          examinationsSection += `  ${isSelected ? '[X]' : '[ ]'} ${item.label} (Code: ${item.code})\n`;
+        });
+      });
+    } else {
+      examinationsSection += '\nULTRASOUND EXAMINATIONS:\n';
+      allUltrasoundRegions.forEach(item => {
+        const isSelected = selectedTestIds.has(item.id);
+        examinationsSection += `  ${isSelected ? '[X]' : '[ ]'} ${item.label} (Code: ${item.code})\n`;
+      });
+    }
 
     // Create PDF content
     const pdfContent = `
-DIAGNOSTIC IMAGING REQUEST FORM
+================================================================================
+              DIAGNOSTIC IMAGING REQUEST FORM
+================================================================================
 
 Date: ${currentDate}
 Request Type: ${clinicalNotes.imagingType === 'xray' ? 'X-RAY' : 'ULTRASOUND'}
 
-PATIENT INFORMATION:
+--------------------------------------------------------------------------------
+PATIENT INFORMATION
+--------------------------------------------------------------------------------
 Name: ${patientName}
 ID Number: ${request.patient.sa_id_number || 'N/A'}
 Date of Birth: ${request.patient.date_of_birth || 'N/A'}
 Contact: ${request.patient.phone}
-Medical Aid: ${request.patient.medical_aid_provider || 'None'} ${request.patient.medical_aid_number ? `(${request.patient.medical_aid_number})` : ''}
+Medical Aid: ${request.patient.medical_aid_provider || 'None'} 
+${request.patient.medical_aid_number ? `Member Number: ${request.patient.medical_aid_number}` : ''}
 
-EXAMINATION(S) REQUESTED:
-${testsList}
+--------------------------------------------------------------------------------
+EXAMINATION(S) REQUESTED
+--------------------------------------------------------------------------------
+${examinationsSection}
 
-CLINICAL INFORMATION:
-Brief Clinical History: ${clinicalNotes.clinicalHistory || 'N/A'}
+--------------------------------------------------------------------------------
+CLINICAL INFORMATION
+--------------------------------------------------------------------------------
+Brief Clinical History:
+${clinicalNotes.clinicalHistory || 'N/A'}
 
 Clinical Indication / Reason for Examination:
 ${clinicalNotes.clinicalIndication}
@@ -89,22 +196,32 @@ ${clinicalNotes.clinicalIndication}
 Relevant Clinical Findings:
 ${clinicalNotes.relevantFindings || 'N/A'}
 
-Provisional Diagnosis: ${clinicalNotes.provisionalDiagnosis || 'N/A'}
+Provisional Diagnosis:
+${clinicalNotes.provisionalDiagnosis || 'N/A'}
 
-ADDITIONAL INFORMATION:
-Pregnancy Status: ${clinicalNotes.pregnancy?.status ? `Yes (${clinicalNotes.pregnancy.weeks} weeks)` : 'No / N/A'}
-Contrast Required: ${clinicalNotes.contrast ? 'Yes' : 'No'}
+--------------------------------------------------------------------------------
+ADDITIONAL INFORMATION
+--------------------------------------------------------------------------------
+Pregnancy Status: ${clinicalNotes.pregnancy?.status ? `[X] Yes (${clinicalNotes.pregnancy.weeks} weeks)` : '[X] No / N/A'}
+Contrast Required: ${clinicalNotes.contrast ? '[X] Yes  [ ] No' : '[ ] Yes  [X] No'}
 Known Allergies: ${clinicalNotes.allergies || 'None'}
-Urgency: ${clinicalNotes.urgency || 'Routine'}
+Urgency Level: ${clinicalNotes.urgency === 'routine' ? '[X] Routine  [ ] Urgent  [ ] Emergency' : 
+                 clinicalNotes.urgency === 'urgent' ? '[ ] Routine  [X] Urgent  [ ] Emergency' :
+                 '[ ] Routine  [ ] Urgent  [X] Emergency'}
 
-REQUESTING PRACTITIONER:
+--------------------------------------------------------------------------------
+REQUESTING PRACTITIONER
+--------------------------------------------------------------------------------
 Name: ${requestedByProfile.full_name}
 Contact: ${requestedByProfile.phone || 'N/A'}
 Date: ${currentDate}
 
----
-This is an official diagnostic imaging request. Please process according to the specified urgency level.
+================================================================================
+This is an official diagnostic imaging request.
+Please process according to the specified urgency level.
+
 Request ID: ${requestId}
+================================================================================
 `;
 
     console.log('PDF content prepared');
