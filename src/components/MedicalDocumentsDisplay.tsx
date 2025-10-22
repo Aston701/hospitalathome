@@ -105,6 +105,38 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
     }
   };
 
+  const handleDownloadImagingRequest = async (requestId: string, existingPdfUrl: string | null) => {
+    try {
+      setGeneratingPdf(requestId);
+
+      // If PDF already exists, download it directly
+      if (existingPdfUrl) {
+        window.open(existingPdfUrl, '_blank');
+        return;
+      }
+
+      // Generate new PDF
+      const { data, error } = await supabase.functions.invoke('generate-imaging-request-pdf', {
+        body: { requestId }
+      });
+
+      if (error) throw error;
+
+      if (data.pdfUrl) {
+        toast.success("Imaging request PDF generated successfully");
+        // Refresh the documents to show the new PDF URL
+        fetchDocuments();
+        // Download the PDF
+        window.open(data.pdfUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error generating imaging request PDF:', error);
+      toast.error("Failed to generate imaging request PDF");
+    } finally {
+      setGeneratingPdf(null);
+    }
+  };
+
   if (loading) {
     return <div className="text-sm text-muted-foreground">Loading documents...</div>;
   }
@@ -159,14 +191,24 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
                   </div>
                 )}
 
-                {request.pdf_url && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={request.pdf_url} download>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleDownloadImagingRequest(request.id, request.pdf_url)}
+                  disabled={generatingPdf === request.id}
+                >
+                  {generatingPdf === request.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
                       <Download className="h-4 w-4 mr-2" />
-                      Download PDF
-                    </a>
-                  </Button>
-                )}
+                      {request.pdf_url ? 'Download PDF' : 'Generate PDF'}
+                    </>
+                  )}
+                </Button>
               </div>
             ))}
           </CardContent>
