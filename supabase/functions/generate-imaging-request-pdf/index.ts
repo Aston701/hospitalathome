@@ -98,7 +98,7 @@ const MIDDLE_PANEL: Panel = {
         { code: "3317", part: "Skeletal Survey" },
         { code: "0000", part: "Pelvis" },
         { code: "0000", part: "Hips" },
-        { code: "0000", part: "Skeletal Survey ≤5 years old" },
+        { code: "0000", part: "Skeletal Survey <=5 years old" },
         { code: "0000", part: "Skeletal Survey >5 years old" },
       ],
     },
