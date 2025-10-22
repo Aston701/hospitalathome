@@ -375,19 +375,27 @@ async function renderPdf(body: any) {
 
 Deno.serve(async (req) => {
   try {
+    // Check if the request has a body
+    const contentType = req.headers.get('content-type');
+    console.log('Request content-type:', contentType);
+    console.log('Request method:', req.method);
+    
     let requestId;
-    try {
+    
+    // Handle both GET and POST requests
+    if (req.method === 'POST' && contentType?.includes('application/json')) {
       const body = await req.json();
+      console.log('Request body:', body);
       requestId = body.requestId;
-    } catch (e) {
-      console.error('Error parsing request body:', e);
-      return new Response(JSON.stringify({ error: "Invalid request body" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    } else {
+      // Try to get from URL params as fallback
+      const url = new URL(req.url);
+      requestId = url.searchParams.get('requestId');
+      console.log('Request ID from URL:', requestId);
     }
 
     if (!requestId) {
+      console.error('No requestId provided');
       return new Response(JSON.stringify({ error: "requestId is required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -451,15 +459,15 @@ Deno.serve(async (req) => {
     const pdfBody = {
       patient: {
         name: patient ? `${patient.first_name} ${patient.last_name}` : '',
-        sex: patient?.gender || '',
-        idNumber: patient?.id_number || '',
+        sex: '', // No gender column in patients table
+        idNumber: patient?.sa_id_number || '',
         dob: patient?.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '',
         date: diagnosticRequest.created_at ? new Date(diagnosticRequest.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
         lnmp: '',
-        private: patient?.medical_aid_scheme ? false : true,
+        private: patient?.medical_aid_provider ? false : true,
         medicalAid: {
-          isMember: !!patient?.medical_aid_scheme,
-          name: patient?.medical_aid_scheme || '',
+          isMember: !!patient?.medical_aid_provider,
+          name: patient?.medical_aid_provider || '',
           number: patient?.medical_aid_number || ''
         }
       },
