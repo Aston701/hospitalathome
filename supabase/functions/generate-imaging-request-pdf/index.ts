@@ -375,7 +375,17 @@ async function renderPdf(body: any) {
 
 Deno.serve(async (req) => {
   try {
-    const { requestId } = await req.json();
+    let requestId;
+    try {
+      const body = await req.json();
+      requestId = body.requestId;
+    } catch (e) {
+      console.error('Error parsing request body:', e);
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     if (!requestId) {
       return new Response(JSON.stringify({ error: "requestId is required" }), {
@@ -390,6 +400,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('Fetching diagnostic request:', requestId);
+
     // Fetch diagnostic request with related data
     const { data: diagnosticRequest, error: fetchError } = await supabaseClient
       .from('diagnostic_requests')
@@ -399,21 +411,41 @@ Deno.serve(async (req) => {
           *,
           patient:patients(*)
         ),
-        doctor:profiles!diagnostic_requests_doctor_id_fkey(*)
+        doctor:profiles!diagnostic_requests_requested_by_fkey(*)
       `)
       .eq('id', requestId)
       .single();
 
     if (fetchError || !diagnosticRequest) {
       console.error('Error fetching diagnostic request:', fetchError);
-      return new Response(JSON.stringify({ error: "Diagnostic request not found" }), {
+      return new Response(JSON.stringify({ 
+        error: "Diagnostic request not found", 
+        details: fetchError?.message 
+      }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
 
+    console.log('Diagnostic request found:', diagnosticRequest.id);
+
     const patient = diagnosticRequest.visit?.patient;
     const doctor = diagnosticRequest.doctor;
+    
+    // Parse clinical notes if it's a JSON string
+    let clinicalData: any = {};
+    if (diagnosticRequest.clinical_notes) {
+      try {
+        clinicalData = typeof diagnosticRequest.clinical_notes === 'string' 
+          ? JSON.parse(diagnosticRequest.clinical_notes)
+          : diagnosticRequest.clinical_notes;
+      } catch (e) {
+        console.error('Error parsing clinical notes:', e);
+      }
+    }
+    
+    // Extract selected region IDs from tests_requested
+    const selectedRegions = (diagnosticRequest.tests_requested || []).map((test: any) => test.id);
 
     // Build request body for PDF
     const pdfBody = {
@@ -422,22 +454,27 @@ Deno.serve(async (req) => {
         sex: patient?.gender || '',
         idNumber: patient?.id_number || '',
         dob: patient?.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '',
-        date: new Date().toLocaleDateString(),
+        date: diagnosticRequest.created_at ? new Date(diagnosticRequest.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
         lnmp: '',
-        private: false,
+        private: patient?.medical_aid_scheme ? false : true,
         medicalAid: {
-          isMember: false,
-          name: '',
-          number: ''
+          isMember: !!patient?.medical_aid_scheme,
+          name: patient?.medical_aid_scheme || '',
+          number: patient?.medical_aid_number || ''
         }
       },
-      selected: diagnosticRequest.selected_regions || [],
-      clinicalHistory: diagnosticRequest.clinical_notes || '',
+      selected: selectedRegions,
+      clinicalHistory: clinicalData.clinicalHistory || clinicalData.clinical_history || '',
       doctor: {
         name: doctor?.full_name || '',
-        practiceNumber: ''
+        practiceNumber: doctor?.practice_number || ''
       }
     };
+
+    console.log('Generating PDF with data:', { 
+      patientName: pdfBody.patient.name, 
+      selectedCount: pdfBody.selected.length 
+    });
 
     const pdfBytes = await renderPdf(pdfBody);
 
