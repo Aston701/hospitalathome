@@ -191,24 +191,37 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
                   </div>
                 )}
 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => handleDownloadImagingRequest(request.id, request.pdf_url)}
-                  disabled={generatingPdf === request.id}
-                >
-                  {generatingPdf === request.id ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating PDF...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      {request.pdf_url ? 'Download PDF' : 'Generate PDF'}
-                    </>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleDownloadImagingRequest(request.id, request.pdf_url)}
+                    disabled={generatingPdf === request.id}
+                  >
+                    {generatingPdf === request.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        {request.pdf_url ? 'Download PDF' : 'Generate PDF'}
+                      </>
+                    )}
+                  </Button>
+                  
+                  {request.pdf_url && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleDownloadImagingRequest(request.id, null)}
+                      disabled={generatingPdf === request.id}
+                    >
+                      Regenerate PDF
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             ))}
           </CardContent>
@@ -283,24 +296,37 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
                 )}
 
                 {note.status === "signed" && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleDownloadSickNote(note.id, note.pdf_url)}
-                    disabled={generatingPdf === note.id}
-                  >
-                    {generatingPdf === note.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating PDF...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4 mr-2" />
-                        {note.pdf_url ? 'Download PDF' : 'Generate PDF'}
-                      </>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDownloadSickNote(note.id, note.pdf_url)}
+                      disabled={generatingPdf === note.id}
+                    >
+                      {generatingPdf === note.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Generating PDF...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          {note.pdf_url ? 'Download PDF' : 'Generate PDF'}
+                        </>
+                      )}
+                    </Button>
+                    
+                    {note.pdf_url && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDownloadSickNote(note.id, null)}
+                        disabled={generatingPdf === note.id}
+                      >
+                        Regenerate PDF
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 )}
               </div>
             ))}
