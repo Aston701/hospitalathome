@@ -61,7 +61,7 @@ const XRAY_REGIONS = [
   { id: "skeletal-survey", label: "Skeletal Survey", code: "3317", category: "Spine and Pelvis" },
   { id: "pelvis-spine", label: "Pelvis", code: "0000", category: "Spine and Pelvis" },
   { id: "hips", label: "Hips", code: "0000", category: "Spine and Pelvis" },
-  { id: "skeletal-survey-under5", label: "Skeletal Survey ≤5 years old", code: "0000", category: "Spine and Pelvis" },
+  { id: "skeletal-survey-under5", label: "Skeletal Survey <=5 years old", code: "0000", category: "Spine and Pelvis" },
   { id: "skeletal-survey-over5", label: "Skeletal Survey >5 years old", code: "0000", category: "Spine and Pelvis" },
   
   // HEAD AND NECK
