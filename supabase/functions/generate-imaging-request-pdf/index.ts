@@ -3,6 +3,7 @@
 
 import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 // --------------------- PAGE + COLORS ---------------------
 const PAGE = { width: 595.28, height: 841.89, margin: 24 }; // A4 portrait
@@ -406,20 +407,103 @@ async function renderPdf(body: any) {
 // --------------------- HTTP HANDLER ---------------------
 Deno.serve(async (req) => {
   try {
-    const body = await (async () => {
-      try {
-        return await req.json();
-      } catch {
-        return {};
-      }
-    })();
-    const bytes = await renderPdf(body);
-    return new Response(bytes as unknown as BodyInit, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'inline; filename="xray-ultrasound-request.pdf"',
-        "Cache-Control": "no-store",
+    const { requestId } = await req.json();
+    
+    if (!requestId) {
+      return new Response(JSON.stringify({ error: "requestId is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch the diagnostic request with patient and doctor details
+    const { data: request, error: requestError } = await supabase
+      .from("diagnostic_requests")
+      .select(`
+        *,
+        patient:patients(*),
+        doctor:profiles!diagnostic_requests_requested_by_fkey(*)
+      `)
+      .eq("id", requestId)
+      .single();
+
+    if (requestError || !request) {
+      console.error("Error fetching request:", requestError);
+      return new Response(JSON.stringify({ error: "Request not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Parse clinical notes if it's a JSON string
+    let clinicalNotes: any = {};
+    try {
+      clinicalNotes = typeof request.clinical_notes === 'string' 
+        ? JSON.parse(request.clinical_notes) 
+        : request.clinical_notes || {};
+    } catch (e) {
+      console.error("Error parsing clinical notes:", e);
+    }
+
+    // Build the body for the PDF renderer
+    const body = {
+      patient: {
+        name: `${request.patient.first_name} ${request.patient.last_name}`,
+        sex: request.patient.gender || "",
+        lnmp: "",
+        idNumber: request.patient.id_number || "",
+        dob: request.patient.date_of_birth || "",
+        date: new Date().toISOString().split('T')[0],
+        private: false,
+        medicalAid: {
+          isMember: !!request.patient.medical_aid_name,
+          name: request.patient.medical_aid_name || "",
+          number: request.patient.medical_aid_number || "",
+        },
       },
+      selected: request.tests_requested?.map((test: any) => 
+        test.code ? `${test.code}:${test.label}` : test.label
+      ) || [],
+      clinicalHistory: clinicalNotes.clinicalHistory || "",
+      doctor: {
+        name: request.doctor?.full_name || "",
+        practiceNumber: request.doctor?.practice_number || "",
+      },
+    };
+
+    const bytes = await renderPdf(body);
+    
+    // Upload PDF to storage
+    const fileName = `imaging_request_${request.patient.first_name}_${request.patient.last_name}_${Date.now()}.pdf`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("prescriptions")
+      .upload(`imaging-requests/${fileName}`, bytes, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Error uploading PDF:", uploadError);
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("prescriptions")
+      .getPublicUrl(`imaging-requests/${fileName}`);
+
+    // Update the diagnostic request with the PDF URL
+    await supabase
+      .from("diagnostic_requests")
+      .update({ pdf_url: publicUrl })
+      .eq("id", requestId);
+
+    return new Response(JSON.stringify({ pdfUrl: publicUrl }), {
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error(err);
