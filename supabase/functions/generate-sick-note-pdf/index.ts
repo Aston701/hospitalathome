@@ -1,19 +1,23 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     // Parse request body with error handling
     let sickNoteId: string | undefined;
@@ -22,76 +26,89 @@ serve(async (req) => {
       sickNoteId = body.sickNoteId;
     } catch (jsonError) {
       console.error("Error parsing request body:", jsonError);
-      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!sickNoteId) {
-      return new Response(JSON.stringify({ error: "Sick note ID is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Sick note ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log("Generating PDF for sick note:", sickNoteId);
+    console.log('Generating PDF for sick note:', sickNoteId);
 
     // Fetch sick note data
     const { data: sickNote, error: fetchError } = await supabase
-      .from("sick_notes")
-      .select("*")
-      .eq("id", sickNoteId)
+      .from('sick_notes')
+      .select('*')
+      .eq('id', sickNoteId)
       .single();
 
     if (fetchError) throw fetchError;
-    if (!sickNote) throw new Error("Sick note not found");
+    if (!sickNote) throw new Error('Sick note not found');
 
-    console.log("Sick note data:", {
+    console.log('Sick note data:', {
       id: sickNote.id,
       status: sickNote.status,
       signature_name: sickNote.signature_name,
-      signature_timestamp: sickNote.signature_timestamp,
+      signature_timestamp: sickNote.signature_timestamp
     });
 
     // Fetch patient data separately
     const { data: patient } = await supabase
-      .from("patients")
-      .select("first_name, last_name, sa_id_number, date_of_birth")
-      .eq("id", sickNote.patient_id)
+      .from('patients')
+      .select('first_name, last_name, sa_id_number, date_of_birth')
+      .eq('id', sickNote.patient_id)
       .single();
 
     // Fetch visit data separately
     const { data: visit } = await supabase
-      .from("visits")
-      .select("scheduled_start")
-      .eq("id", sickNote.visit_id)
+      .from('visits')
+      .select('scheduled_start')
+      .eq('id', sickNote.visit_id)
       .single();
 
     // Fetch doctor profile separately
     const { data: doctorProfile } = await supabase
-      .from("profiles")
-      .select("full_name, phone")
-      .eq("id", sickNote.issued_by)
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('id', sickNote.issued_by)
       .single();
 
     // Create PDF document
     const pdfDoc = await PDFDocument.create();
+    // Register fontkit to embed custom TTF
+    pdfDoc.registerFontkit(fontkit);
+    // Load a cursive/handwritten font for signatures
+    let signatureFont = await (async () => {
+      try {
+        const ttfUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf';
+        const ttfBytes = await (await fetch(ttfUrl)).arrayBuffer();
+        return await pdfDoc.embedFont(new Uint8Array(ttfBytes));
+      } catch (_) {
+        // Fallback to Helvetica if fetch fails
+        return await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+      }
+    })();
     const page = pdfDoc.addPage([595, 842]); // A4 size
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+    
+    
     // === Brand Header: PrimeHealth style ===
     // Fetch the Medi Response long logo at runtime
     let logoImage;
     try {
-      const logoResponse = await fetch(
-        "https://mediresponse.co.za/wp-content/uploads/2021/06/Medi-Response-Long-Logo.png",
-      );
+      const logoResponse = await fetch('https://mediresponse.co.za/wp-content/uploads/2021/06/Medi-Response-Long-Logo.png');
       const logoBytes = await logoResponse.arrayBuffer();
       logoImage = await pdfDoc.embedPng(logoBytes);
     } catch (e) {
-      console.error("Logo fetch failed:", e);
+      console.error('Logo fetch failed:', e);
     }
 
     const { width: pageWidth, height } = page.getSize();
@@ -102,7 +119,7 @@ serve(async (req) => {
       y: height - (barHeight + 40),
       width: pageWidth,
       height: barHeight,
-      color: rgb(0.63, 0.8, 0.38),
+      color: rgb(0.63, 0.80, 0.38),
     });
 
     // Place the logo top-right if it loaded
@@ -118,9 +135,9 @@ serve(async (req) => {
     }
 
     // Start content below the header area
-    // Start content below the header area
+// Start content below the header area
     let yPosition = height - (barHeight + 80);
-    // Add logo at the top if loaded successfully
+// Add logo at the top if loaded successfully
     if (logoImage) {
       const logoHeight = 60;
       const logoWidth = (logoImage.width / logoImage.height) * logoHeight;
@@ -134,7 +151,7 @@ serve(async (req) => {
     }
 
     // Header
-    page.drawText("MEDICAL CERTIFICATE", {
+    page.drawText('MEDICAL CERTIFICATE', {
       x: 150,
       y: yPosition,
       size: 20,
@@ -143,7 +160,7 @@ serve(async (req) => {
     });
     yPosition -= 30;
 
-    page.drawText("Sick Note / Certificate of Incapacity", {
+    page.drawText('Sick Note / Certificate of Incapacity', {
       x: 180,
       y: yPosition,
       size: 12,
@@ -152,10 +169,10 @@ serve(async (req) => {
     });
     yPosition -= 20;
 
-    const issueDate = new Date(sickNote.created_at).toLocaleDateString("en-ZA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+    const issueDate = new Date(sickNote.created_at).toLocaleDateString('en-ZA', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
     });
     page.drawText(`Date Issued: ${issueDate}`, {
       x: 200,
@@ -167,7 +184,7 @@ serve(async (req) => {
     yPosition -= 40;
 
     // Patient Information Section
-    page.drawText("PATIENT INFORMATION", {
+    page.drawText('PATIENT INFORMATION', {
       x: 50,
       y: yPosition,
       size: 11,
@@ -195,7 +212,7 @@ serve(async (req) => {
     }
 
     if (patient?.date_of_birth) {
-      const dob = new Date(patient.date_of_birth).toLocaleDateString("en-ZA");
+      const dob = new Date(patient.date_of_birth).toLocaleDateString('en-ZA');
       page.drawText(`Date of Birth: ${dob}`, {
         x: 70,
         y: yPosition,
@@ -207,7 +224,7 @@ serve(async (req) => {
     yPosition -= 10;
 
     // Medical Assessment Section
-    page.drawText("MEDICAL ASSESSMENT", {
+    page.drawText('MEDICAL ASSESSMENT', {
       x: 50,
       y: yPosition,
       size: 11,
@@ -217,10 +234,10 @@ serve(async (req) => {
     yPosition -= 20;
 
     if (visit?.scheduled_start) {
-      const consultDate = new Date(visit.scheduled_start).toLocaleDateString("en-ZA", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
+      const consultDate = new Date(visit.scheduled_start).toLocaleDateString('en-ZA', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
       });
       page.drawText(`Date of Consultation: ${consultDate}`, {
         x: 70,
@@ -240,14 +257,14 @@ serve(async (req) => {
     yPosition -= 25;
 
     // Certification
-    page.drawText("I hereby certify that the above-named patient has been examined", {
+    page.drawText('I hereby certify that the above-named patient has been examined', {
       x: 70,
       y: yPosition,
       size: 10,
       font: boldFont,
     });
     yPosition -= 15;
-    page.drawText("and is unfit for work/school due to the stated medical condition.", {
+    page.drawText('and is unfit for work/school due to the stated medical condition.', {
       x: 70,
       y: yPosition,
       size: 10,
@@ -256,7 +273,7 @@ serve(async (req) => {
     yPosition -= 25;
 
     // Period of Incapacity
-    page.drawText("PERIOD OF INCAPACITY", {
+    page.drawText('PERIOD OF INCAPACITY', {
       x: 50,
       y: yPosition,
       size: 11,
@@ -265,10 +282,10 @@ serve(async (req) => {
     });
     yPosition -= 20;
 
-    const startDate = new Date(sickNote.start_date).toLocaleDateString("en-ZA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+    const startDate = new Date(sickNote.start_date).toLocaleDateString('en-ZA', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
     });
     page.drawText(`Start Date: ${startDate}`, {
       x: 70,
@@ -278,10 +295,10 @@ serve(async (req) => {
     });
     yPosition -= 15;
 
-    const endDate = new Date(sickNote.end_date).toLocaleDateString("en-ZA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+    const endDate = new Date(sickNote.end_date).toLocaleDateString('en-ZA', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
     });
     page.drawText(`End Date: ${endDate}`, {
       x: 70,
@@ -291,7 +308,7 @@ serve(async (req) => {
     });
     yPosition -= 15;
 
-    const dayLabel = sickNote.days_duration !== 1 ? "days" : "day";
+    const dayLabel = sickNote.days_duration !== 1 ? 'days' : 'day';
     page.drawText(`Total Duration: ${sickNote.days_duration} ${dayLabel}`, {
       x: 70,
       y: yPosition,
@@ -302,7 +319,7 @@ serve(async (req) => {
 
     // Additional Notes
     if (sickNote.additional_notes) {
-      page.drawText("ADDITIONAL NOTES", {
+      page.drawText('ADDITIONAL NOTES', {
         x: 50,
         y: yPosition,
         size: 11,
@@ -321,7 +338,7 @@ serve(async (req) => {
     }
 
     // Signature Section
-    page.drawText("AUTHORIZED SIGNATURE", {
+    page.drawText('AUTHORIZED SIGNATURE', {
       x: 50,
       y: yPosition,
       size: 11,
@@ -330,7 +347,7 @@ serve(async (req) => {
     });
     yPosition -= 20;
 
-    page.drawText(`Issued By: ${doctorProfile?.full_name || "Medical Professional"}`, {
+    page.drawText(`Issued By: ${doctorProfile?.full_name || 'Medical Professional'}`, {
       x: 70,
       y: yPosition,
       size: 10,
@@ -348,24 +365,37 @@ serve(async (req) => {
       yPosition -= 15;
     }
 
+    
     if (sickNote.signature_name) {
       yPosition -= 10;
-      page.drawText(`Signed By: ${sickNote.signature_name}`, {
+      // Draw label
+      const label = "Signed By: ";
+      page.drawText(label, {
         x: 70,
         y: yPosition,
         size: 10,
         font: boldFont,
       });
+      // Draw the name in cursive/handwritten font
+      const labelWidth = boldFont.widthOfTextAtSize(label, 10);
+      page.drawText(String(sickNote.signature_name), {
+        x: 70 + labelWidth + 2,
+        y: yPosition,
+        size: 14, // slightly larger for signature effect
+        font: signatureFont,
+      });
       yPosition -= 15;
     }
 
+    }
+
     if (sickNote.signature_timestamp) {
-      const signatureDate = new Date(sickNote.signature_timestamp).toLocaleDateString("en-ZA", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+      const signatureDate = new Date(sickNote.signature_timestamp).toLocaleDateString('en-ZA', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       });
       page.drawText(`Signature Date: ${signatureDate}`, {
         x: 70,
@@ -384,7 +414,7 @@ serve(async (req) => {
       color: rgb(0, 0, 0),
     });
     yPosition -= 15;
-    page.drawText("Authorized Medical Professional", {
+    page.drawText('Authorized Medical Professional', {
       x: 70,
       y: yPosition,
       size: 9,
@@ -393,7 +423,7 @@ serve(async (req) => {
     });
 
     // Footer
-    page.drawText("This is an official medical certificate issued by MediResponse", {
+    page.drawText('This is an official medical certificate issued by MediResponse', {
       x: 120,
       y: 50,
       size: 9,
@@ -410,60 +440,61 @@ serve(async (req) => {
 
     // Save PDF
     const pdfBytes = await pdfDoc.save();
-    const fileName = `sick_note_${patient?.first_name || "patient"}_${patient?.last_name || "note"}_${new Date().getTime()}.pdf`;
+    const fileName = `sick_note_${patient?.first_name || 'patient'}_${patient?.last_name || 'note'}_${new Date().getTime()}.pdf`;
 
     // Upload to Supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("prescriptions")
+      .from('prescriptions')
       .upload(`sick-notes/${fileName}`, pdfBytes, {
-        contentType: "application/pdf",
+        contentType: 'application/pdf',
         upsert: false,
       });
 
     if (uploadError) throw uploadError;
 
     // Get public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("prescriptions").getPublicUrl(`sick-notes/${fileName}`);
+    const { data: { publicUrl } } = supabase.storage
+      .from('prescriptions')
+      .getPublicUrl(`sick-notes/${fileName}`);
 
     // Update sick note with PDF URL
     const { error: updateError } = await supabase
-      .from("sick_notes")
+      .from('sick_notes')
       .update({ pdf_url: publicUrl })
-      .eq("id", sickNoteId);
+      .eq('id', sickNoteId);
 
     if (updateError) throw updateError;
 
-    console.log("PDF generated successfully:", publicUrl);
+    console.log('PDF generated successfully:', publicUrl);
 
     return new Response(
-      JSON.stringify({
-        success: true,
+      JSON.stringify({ 
+        success: true, 
         pdf_url: publicUrl,
-        message: "Sick note PDF generated successfully",
+        message: 'Sick note PDF generated successfully' 
       }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      },
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
+
   } catch (error: any) {
-    console.error("Error generating sick note PDF:", error);
+    console.error('Error generating sick note PDF:', error);
     return new Response(
-      JSON.stringify({
-        error: error?.message || "Unknown error occurred",
-        success: false,
+      JSON.stringify({ 
+        error: error?.message || 'Unknown error occurred',
+        success: false 
       }),
-      {
+      { 
         status: 400,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   }
 });
