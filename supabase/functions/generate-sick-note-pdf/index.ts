@@ -356,25 +356,46 @@ serve(async (req) => {
     }
 
     
+    
     if (sickNote.signature_name) {
-      yPosition -= 10;
-      // Draw label
-      const label = "Signed By: ";
-      page.drawText(label, {
+      // Add spacing before signature area
+      yPosition -= 20;
+
+      // Signature label above the line (small, neat)
+      page.drawText("Signed By:", {
         x: 70,
-        y: yPosition,
-        size: 10,
+        y: yPosition + 10,
+        size: 9,
         font: boldFont,
       });
-      // Draw the name in cursive/handwritten font
-      const labelWidth = boldFont.widthOfTextAtSize(label, 10);
+
+      // Draw signature line
+      const sigLineStartX = 140;
+      const sigLineEndX = 380;
+      const sigLineY = yPosition + 8;
+      page.drawLine({
+        start: { x: sigLineStartX, y: sigLineY },
+        end: { x: sigLineEndX, y: sigLineY },
+        thickness: 1.2,
+        color: rgb(0, 0, 0),
+      });
+
+      // Render the signature name larger in cursive so it "sits" on the line
+      const sigSize = 22;
+      // Slightly lower than the line so descenders cross it, like ink
       page.drawText(String(sickNote.signature_name), {
-        x: 70 + labelWidth + 2,
-        y: yPosition,
-        size: 14, // slightly larger for signature effect
+        x: sigLineStartX + 6,
+        y: sigLineY - 6,
+        size: sigSize,
         font: signatureFont,
       });
-      yPosition -= 15;
+
+      // Move cursor below the signature block
+      yPosition -= 25;
+    }
+
+    }
+
     }
 
     if (sickNote.signature_timestamp) {
