@@ -377,8 +377,6 @@ serve(async (req) => {
       yPosition -= 15;
     }
 
-    }
-
     if (sickNote.signature_timestamp) {
       const signatureDate = new Date(sickNote.signature_timestamp).toLocaleDateString('en-ZA', { 
         year: 'numeric', 
