@@ -411,7 +411,6 @@ serve(async (req) => {
       yPosition -= 25;
     }
 
-    }
 
     }
 
