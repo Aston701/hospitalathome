@@ -137,20 +137,10 @@ serve(async (req) => {
     // Start content below the header area
 // Start content below the header area
     let yPosition = height - (barHeight + 80);
-// Add logo at the top if loaded successfully
-    if (logoImage) {
-      const logoHeight = 60;
-      const logoWidth = (logoImage.width / logoImage.height) * logoHeight;
-      page.drawImage(logoImage, {
-        x: 50,
-        y: yPosition - logoHeight,
-        width: logoWidth,
-        height: logoHeight,
-      });
-      yPosition -= logoHeight + 30;
-    }
 
-    // Header
+    // (legacy logo block removed to avoid duplicate logo)
+
+// Header
     page.drawText('MEDICAL CERTIFICATE', {
       x: 150,
       y: yPosition,
@@ -385,6 +375,8 @@ serve(async (req) => {
         font: signatureFont,
       });
       yPosition -= 15;
+    }
+
     }
 
     if (sickNote.signature_timestamp) {
