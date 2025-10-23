@@ -357,6 +357,7 @@ serve(async (req) => {
 
     
     
+    
     if (sickNote.signature_name) {
       // Add spacing before signature area
       yPosition -= 20;
@@ -364,15 +365,41 @@ serve(async (req) => {
       // Signature label above the line (small, neat)
       page.drawText("Signed By:", {
         x: 70,
-        y: yPosition + 10,
+        y: yPosition + 16,
         size: 9,
         font: boldFont,
       });
 
-      // Draw signature line
+      // Signature positioning: make the text baseline and place the line just under it
       const sigLineStartX = 140;
       const sigLineEndX = 380;
-      const sigLineY = yPosition + 8;
+
+      // Choose a baseline a bit above yPosition
+      const sigSizeBase = 22;
+      // We may scale down if the name is too long for the line
+      const sigName = String(sickNote.signature_name);
+      let sigSize = sigSizeBase;
+      const availableWidth = (sigLineEndX - sigLineStartX) - 12;
+      try {
+        const testWidth = signatureFont.widthOfTextAtSize(sigName, sigSizeBase);
+        if (testWidth > availableWidth) {
+          const scale = availableWidth / testWidth;
+          sigSize = Math.max(16, sigSizeBase * scale);
+        }
+      } catch (_) { /* ignore width calc errors */ }
+
+      // Baseline Y for signature text
+      const sigBaseY = yPosition + 10; // baseline of text
+      // Draw the signature (on baseline)
+      page.drawText(sigName, {
+        x: sigLineStartX + 6,
+        y: sigBaseY,
+        size: sigSize,
+        font: signatureFont,
+      });
+
+      // Draw line just under the baseline so the signature "sits" on it
+      const sigLineY = sigBaseY - 3; // slightly below baseline
       page.drawLine({
         start: { x: sigLineStartX, y: sigLineY },
         end: { x: sigLineEndX, y: sigLineY },
@@ -380,18 +407,14 @@ serve(async (req) => {
         color: rgb(0, 0, 0),
       });
 
-      // Render the signature name larger in cursive so it "sits" on the line
-      const sigSize = 22;
-      // Slightly lower than the line so descenders cross it, like ink
-      page.drawText(String(sickNote.signature_name), {
-        x: sigLineStartX + 6,
-        y: sigLineY - 6,
-        size: sigSize,
-        font: signatureFont,
-      });
-
       // Move cursor below the signature block
       yPosition -= 25;
+    }
+
+    }
+
+    }
+
     }
 
     if (sickNote.signature_timestamp) {
