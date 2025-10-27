@@ -298,7 +298,14 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Prescriptions</h3>
         {(userRole === "doctor" || userRole === "nurse") && (
-          <Button onClick={handleCreatePrescription} size="sm">
+          <Button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleCreatePrescription();
+            }} 
+            size="sm"
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Prescription
           </Button>
