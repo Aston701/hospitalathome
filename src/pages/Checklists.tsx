@@ -2,57 +2,58 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle2, ClipboardList, Send } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, ChevronDown, ClipboardList, Send, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
+
+interface ChecklistSection {
+  title: string;
+  items: Array<{
+    id: string;
+    label: string;
+    type: 'yesno' | 'comment';
+  }>;
+  columns: string[];
+}
 
 interface ChecklistTemplate {
   id: string;
   name: string;
   description: string | null;
+  sections: ChecklistSection[];
   order_index: number;
-  created_at: string;
-}
-
-interface ChecklistItem {
-  id: string;
-  template_id: string;
-  item_text: string;
-  order_index: number;
-  created_at: string;
-}
-
-interface ChecklistCompletion {
-  id: string;
-  user_id: string;
-  template_id: string;
-  item_id: string;
-  completed_at: string;
-  notes: string | null;
 }
 
 interface ChecklistSubmission {
   id: string;
-  user_id: string;
   template_id: string;
+  staff_name: string;
+  shift: string;
   submitted_at: string;
-  notes: string | null;
-  completed_items: string[];
+  responses: Record<string, any>;
+  signature_name: string;
+  pdf_url: string | null;
 }
 
 const Checklists = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
-  const [items, setItems] = useState<ChecklistItem[]>([]);
-  const [completions, setCompletions] = useState<ChecklistCompletion[]>([]);
   const [submissions, setSubmissions] = useState<ChecklistSubmission[]>([]);
-  const [notes, setNotes] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<string>("");
+  
+  // Form state
+  const [staffName, setStaffName] = useState("");
+  const [shift, setShift] = useState("");
+  const [responses, setResponses] = useState<Record<string, any>>({});
+  const [signatureName, setSignatureName] = useState("");
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchChecklists();
@@ -62,7 +63,6 @@ const Checklists = () => {
     try {
       setLoading(true);
 
-      // Fetch templates
       const { data: templatesData, error: templatesError } = await supabase
         .from("checklist_templates" as any)
         .select("*")
@@ -73,34 +73,16 @@ const Checklists = () => {
 
       if (templatesData && templatesData.length > 0) {
         setActiveTab((templatesData as any)[0].id);
+        // Open all sections by default
+        const sectionsState: Record<string, boolean> = {};
+        (templatesData as any).forEach((template: any) => {
+          template.sections?.forEach((section: any, idx: number) => {
+            sectionsState[`${template.id}-${idx}`] = true;
+          });
+        });
+        setOpenSections(sectionsState);
       }
 
-      // Fetch all items
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("checklist_items" as any)
-        .select("*")
-        .order("order_index");
-
-      if (itemsError) throw itemsError;
-      setItems((itemsData as any) || []);
-
-      // Fetch today's completions for current user
-      const today = new Date().toISOString().split('T')[0];
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { data: completionsData, error: completionsError } = await supabase
-          .from("checklist_completions" as any)
-          .select("*")
-          .eq("user_id", user.id)
-          .gte("completed_at", `${today}T00:00:00`)
-          .lte("completed_at", `${today}T23:59:59`);
-
-        if (completionsError) throw completionsError;
-        setCompletions((completionsData as any) || []);
-      }
-
-      // Fetch all submissions
       const { data: submissionsData, error: submissionsError } = await supabase
         .from("checklist_submissions" as any)
         .select("*")
@@ -119,94 +101,55 @@ const Checklists = () => {
     }
   };
 
-  const isItemCompleted = (itemId: string) => {
-    return completions.some((c) => c.item_id === itemId);
+  const handleResponseChange = (itemId: string, value: any) => {
+    setResponses({ ...responses, [itemId]: value });
   };
 
-  const handleToggleItem = async (itemId: string, templateId: string) => {
+  const toggleSection = (sectionId: string) => {
+    setOpenSections({ ...openSections, [sectionId]: !openSections[sectionId] });
+  };
+
+  const resetForm = () => {
+    setStaffName("");
+    setShift("");
+    setResponses({});
+    setSignatureName("");
+  };
+
+  const handleSubmit = async (templateId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const isCompleted = isItemCompleted(itemId);
-
-      if (isCompleted) {
-        // Remove completion
-        const completion = completions.find((c) => c.item_id === itemId);
-        if (completion) {
-          const { error } = await supabase
-            .from("checklist_completions" as any)
-            .delete()
-            .eq("id", completion.id);
-
-          if (error) throw error;
-
-          setCompletions(completions.filter((c) => c.id !== completion.id));
-        }
-      } else {
-        // Add completion
-        const { data, error } = await supabase
-          .from("checklist_completions" as any)
-          .insert({
-            user_id: user.id,
-            template_id: templateId,
-            item_id: itemId,
-          } as any)
-          .select()
-          .single();
-
-        if (error) throw error;
-        setCompletions([...completions, data as any]);
+      if (!staffName || !shift || !signatureName) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Please fill in all required fields",
+        });
+        return;
       }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    }
-  };
 
-  const handleSubmitChecklist = async (templateId: string) => {
-    try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      const templateItems = items.filter((item) => item.template_id === templateId);
-      const completedItemIds = templateItems
-        .filter((item) => isItemCompleted(item.id))
-        .map((item) => item.id);
 
       const { error } = await supabase
         .from("checklist_submissions" as any)
         .insert({
-          user_id: user.id,
           template_id: templateId,
-          notes: notes[templateId] || null,
-          completed_items: completedItemIds,
+          user_id: user.id,
+          staff_name: staffName,
+          shift: shift,
+          responses: responses,
+          signature_name: signatureName,
         } as any);
 
       if (error) throw error;
-
-      // Clear today's completions and notes for this template
-      const completionsToDelete = completions.filter((c) => c.template_id === templateId);
-      for (const completion of completionsToDelete) {
-        await supabase
-          .from("checklist_completions" as any)
-          .delete()
-          .eq("id", completion.id);
-      }
-
-      setCompletions(completions.filter((c) => c.template_id !== templateId));
-      setNotes({ ...notes, [templateId]: "" });
-
-      // Refresh submissions
-      await fetchChecklists();
 
       toast({
         title: "Success",
         description: "Checklist submitted successfully",
       });
+
+      resetForm();
+      await fetchChecklists();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -218,18 +161,6 @@ const Checklists = () => {
 
   const getSubmissionsForTemplate = (templateId: string) => {
     return submissions.filter((s) => s.template_id === templateId);
-  };
-
-  const getTemplateProgress = (templateId: string) => {
-    const templateItems = items.filter((item) => item.template_id === templateId);
-    const completedItems = templateItems.filter((item) => isItemCompleted(item.id));
-    return {
-      completed: completedItems.length,
-      total: templateItems.length,
-      percentage: templateItems.length > 0 
-        ? Math.round((completedItems.length / templateItems.length) * 100)
-        : 0,
-    };
   };
 
   if (loading) {
@@ -244,157 +175,208 @@ const Checklists = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Checklists</h1>
+          <h1 className="text-3xl font-bold">Equipment Checklists</h1>
           <p className="text-muted-foreground mt-1">
-            Daily equipment and cleaning checklists
+            Daily equipment verification and maintenance checklists
           </p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
-          {templates.map((template) => {
-            const progress = getTemplateProgress(template.id);
-            return (
-              <TabsTrigger
-                key={template.id}
-                value={template.id}
-                className="relative"
-              >
-                <div className="flex items-center gap-2">
-                  {progress.percentage === 100 ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <ClipboardList className="h-4 w-4" />
-                  )}
-                  <span className="hidden sm:inline">
-                    {template.name.split(' ').slice(0, 3).join(' ')}
-                  </span>
-                  <span className="sm:hidden">
-                    {template.order_index === 1 ? "Start" : template.order_index === 2 ? "Visit" : "End"}
-                  </span>
-                </div>
-              </TabsTrigger>
-            );
-          })}
+          {templates.map((template) => (
+            <TabsTrigger key={template.id} value={template.id} className="text-xs sm:text-sm">
+              <ClipboardList className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">{template.name.split(' ')[0]}</span>
+              <span className="sm:hidden">
+                {template.order_index === 1 ? "Start" : template.order_index === 2 ? "After Use" : "End"}
+              </span>
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {templates.map((template) => {
-          const progress = getTemplateProgress(template.id);
-          const templateItems = items.filter((item) => item.template_id === template.id);
-
-          return (
-            <TabsContent key={template.id} value={template.id}>
-              <Card>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle>{template.name}</CardTitle>
-                      <CardDescription>{template.description}</CardDescription>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">
-                        {progress.percentage}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {progress.completed} of {progress.total} completed
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {templateItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start space-x-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
-                    >
-                      <Checkbox
-                        id={item.id}
-                        checked={isItemCompleted(item.id)}
-                        onCheckedChange={() => handleToggleItem(item.id, template.id)}
-                        className="mt-1"
-                      />
-                      <label
-                        htmlFor={item.id}
-                        className={`flex-1 text-sm font-medium leading-relaxed cursor-pointer ${
-                          isItemCompleted(item.id)
-                            ? "line-through text-muted-foreground"
-                            : ""
-                        }`}
-                      >
-                        {item.item_text}
-                      </label>
-                    </div>
-                  ))}
-
-                  {progress.percentage === 100 && (
-                    <div className="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                        <CheckCircle2 className="h-5 w-5" />
-                        <span className="font-medium">
-                          All items checked! Add notes and submit below.
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notes Section */}
-                  <div className="mt-6 space-y-3">
-                    <Label htmlFor={`notes-${template.id}`}>Notes (Optional)</Label>
-                    <Textarea
-                      id={`notes-${template.id}`}
-                      placeholder="Add any additional notes or observations..."
-                      value={notes[template.id] || ""}
-                      onChange={(e) => setNotes({ ...notes, [template.id]: e.target.value })}
-                      className="min-h-[100px]"
+        {templates.map((template) => (
+          <TabsContent key={template.id} value={template.id} className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{template.name}</CardTitle>
+                <CardDescription>{template.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Header Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg">
+                  <div className="space-y-2">
+                    <Label htmlFor="staff-name">Staff Name *</Label>
+                    <Input
+                      id="staff-name"
+                      value={staffName}
+                      onChange={(e) => setStaffName(e.target.value)}
+                      placeholder="Enter your name"
                     />
-                    <Button
-                      onClick={() => handleSubmitChecklist(template.id)}
-                      className="w-full"
-                      size="lg"
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Submit Checklist
-                    </Button>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shift">Shift *</Label>
+                    <Select value={shift} onValueChange={setShift}>
+                      <SelectTrigger id="shift">
+                        <SelectValue placeholder="Select shift" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="day">Day</SelectItem>
+                        <SelectItem value="night">Night</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date & Time</Label>
+                    <Input value={format(new Date(), "PPpp")} disabled />
+                  </div>
+                </div>
 
-                  {/* Submission History */}
-                  <div className="mt-8 space-y-4">
-                    <h3 className="text-lg font-semibold">Submission History</h3>
-                    {getSubmissionsForTemplate(template.id).length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No submissions yet</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {getSubmissionsForTemplate(template.id).map((submission) => (
-                          <Card key={submission.id}>
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="space-y-1">
-                                  <p className="text-sm font-medium">
-                                    {format(new Date(submission.submitted_at), "PPpp")}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {submission.completed_items.length} items completed
-                                  </p>
-                                  {submission.notes && (
-                                    <p className="text-sm mt-2 p-2 bg-secondary rounded">
-                                      {submission.notes}
-                                    </p>
+                {/* Checklist Sections */}
+                {template.sections?.map((section, sectionIdx) => {
+                  const sectionId = `${template.id}-${sectionIdx}`;
+                  return (
+                    <Collapsible
+                      key={sectionIdx}
+                      open={openSections[sectionId]}
+                      onOpenChange={() => toggleSection(sectionId)}
+                    >
+                      <Card>
+                        <CollapsibleTrigger className="w-full">
+                          <CardHeader className="cursor-pointer hover:bg-secondary/50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-lg">{section.title}</CardTitle>
+                              <ChevronDown
+                                className={`h-5 w-5 transition-transform ${
+                                  openSections[sectionId] ? "rotate-180" : ""
+                                }`}
+                              />
+                            </div>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent className="space-y-4 pt-4">
+                            {section.items?.map((item) => (
+                              <div
+                                key={item.id}
+                                className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg"
+                              >
+                                <div className="md:col-span-1">
+                                  <Label className="text-sm font-medium">{item.label}</Label>
+                                </div>
+                                <div className="space-y-2">
+                                  {item.type === 'yesno' ? (
+                                    <Select
+                                      value={responses[item.id]?.status || ""}
+                                      onValueChange={(value) =>
+                                        handleResponseChange(item.id, {
+                                          ...responses[item.id],
+                                          status: value,
+                                        })
+                                      }
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="yes">Yes</SelectItem>
+                                        <SelectItem value="no">No</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Textarea
+                                      placeholder="Enter comments..."
+                                      value={responses[item.id]?.comment || ""}
+                                      onChange={(e) =>
+                                        handleResponseChange(item.id, {
+                                          comment: e.target.value,
+                                        })
+                                      }
+                                      className="min-h-[80px]"
+                                    />
                                   )}
                                 </div>
-                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                {item.type === 'yesno' && responses[item.id]?.status === 'no' && (
+                                  <div className="md:col-span-1">
+                                    <Textarea
+                                      placeholder="Please provide details..."
+                                      value={responses[item.id]?.comment || ""}
+                                      onChange={(e) =>
+                                        handleResponseChange(item.id, {
+                                          ...responses[item.id],
+                                          comment: e.target.value,
+                                        })
+                                      }
+                                      className="min-h-[80px]"
+                                    />
+                                  </div>
+                                )}
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          );
-        })}
+                            ))}
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  );
+                })}
+
+                {/* Signature Section */}
+                <div className="space-y-4 p-4 bg-secondary/50 rounded-lg">
+                  <Label htmlFor="signature">Completed and Verified By *</Label>
+                  <Input
+                    id="signature"
+                    value={signatureName}
+                    onChange={(e) => setSignatureName(e.target.value)}
+                    placeholder="Type your full name to sign"
+                  />
+                  <Button onClick={() => handleSubmit(template.id)} className="w-full" size="lg">
+                    <Send className="h-4 w-4 mr-2" />
+                    Submit Checklist
+                  </Button>
+                </div>
+
+                {/* Submission History */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Submission History</h3>
+                  {getSubmissionsForTemplate(template.id).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No submissions yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {getSubmissionsForTemplate(template.id).map((submission) => (
+                        <Card key={submission.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-2 flex-1">
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                  <div>
+                                    <span className="font-medium">Staff:</span> {submission.staff_name}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Shift:</span>{" "}
+                                    {submission.shift.charAt(0).toUpperCase() + submission.shift.slice(1)}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Date:</span>{" "}
+                                    {format(new Date(submission.submitted_at), "PPpp")}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Verified By:</span> {submission.signature_name}
+                                  </div>
+                                </div>
+                              </div>
+                              <FileText className="h-5 w-5 text-primary ml-4" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );

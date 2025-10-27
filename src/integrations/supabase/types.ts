@@ -61,101 +61,39 @@ export type Database = {
           },
         ]
       }
-      checklist_completions: {
-        Row: {
-          completed_at: string | null
-          id: string
-          item_id: string
-          notes: string | null
-          template_id: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          id?: string
-          item_id: string
-          notes?: string | null
-          template_id: string
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          id?: string
-          item_id?: string
-          notes?: string | null
-          template_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "checklist_completions_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "checklist_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "checklist_completions_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "checklist_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      checklist_items: {
-        Row: {
-          created_at: string | null
-          id: string
-          item_text: string
-          order_index: number
-          template_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          item_text: string
-          order_index: number
-          template_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          item_text?: string
-          order_index?: number
-          template_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "checklist_items_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "checklist_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       checklist_submissions: {
         Row: {
-          completed_items: Json
           id: string
-          notes: string | null
+          pdf_url: string | null
+          responses: Json
+          shift: string
+          signature_name: string
+          signature_timestamp: string | null
+          staff_name: string
           submitted_at: string | null
           template_id: string
           user_id: string
         }
         Insert: {
-          completed_items?: Json
           id?: string
-          notes?: string | null
+          pdf_url?: string | null
+          responses?: Json
+          shift: string
+          signature_name: string
+          signature_timestamp?: string | null
+          staff_name: string
           submitted_at?: string | null
           template_id: string
           user_id: string
         }
         Update: {
-          completed_items?: Json
           id?: string
-          notes?: string | null
+          pdf_url?: string | null
+          responses?: Json
+          shift?: string
+          signature_name?: string
+          signature_timestamp?: string | null
+          staff_name?: string
           submitted_at?: string | null
           template_id?: string
           user_id?: string
@@ -177,6 +115,7 @@ export type Database = {
           id: string
           name: string
           order_index: number
+          sections: Json
         }
         Insert: {
           created_at?: string | null
@@ -184,6 +123,7 @@ export type Database = {
           id?: string
           name: string
           order_index: number
+          sections?: Json
         }
         Update: {
           created_at?: string | null
@@ -191,6 +131,7 @@ export type Database = {
           id?: string
           name?: string
           order_index?: number
+          sections?: Json
         }
         Relationships: []
       }
