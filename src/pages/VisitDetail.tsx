@@ -668,6 +668,7 @@ const VisitDetail = () => {
             />
             {(userRole === "nurse" || userRole === "doctor" || userRole === "admin" || userRole === "control_room") && (
               <Button
+                variant="outline"
                 onClick={async () => {
                   try {
                     const { data: visitData } = await supabase
@@ -711,9 +712,8 @@ const VisitDetail = () => {
                     });
                   }
                 }}
-                className="flex items-center gap-2"
               >
-                <Pill className="h-4 w-4" />
+                <Pill className="h-4 w-4 mr-2" />
                 New Prescription
               </Button>
             )}
