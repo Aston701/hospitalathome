@@ -218,7 +218,7 @@ const Checklists = () => {
               notificationType: 'checklist_alert',
               subject: `Equipment Checklist Alert - ${template?.name}`,
               message: `The following equipment issues were reported by ${staffName}:\n\n${noItems.join('\n')}`,
-              recipientEmail: 'aston@mediresponse.co,sam@mediresponse.co',
+              recipientEmail: 'aston@mediresponse.co;sam@mediresponse.co',
               recipientName: 'Management Team',
               additionalData: {
                 checklistName: template?.name,
