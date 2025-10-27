@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Loader2, Pill, TestTube, Stethoscope, FileSpreadsheet, Plus } from "lucide-react";
+import { FileText, Download, Loader2, Pill, TestTube, Stethoscope, FileSpreadsheet, Plus, CheckCircle, PenLine } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PrescriptionManager from "./PrescriptionManager";
@@ -22,6 +25,9 @@ export function MedicalDocumentsDisplay({ visitId, userRole, currentUserId }: Me
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("imaging");
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [selectedSickNoteId, setSelectedSickNoteId] = useState<string | null>(null);
+  const [signatureName, setSignatureName] = useState("");
 
   useEffect(() => {
     fetchDocuments();
@@ -153,6 +159,48 @@ export function MedicalDocumentsDisplay({ visitId, userRole, currentUserId }: Me
     } finally {
       setGeneratingPdf(null);
     }
+  };
+
+  const handleSignSickNote = async () => {
+    if (!selectedSickNoteId || !signatureName.trim()) {
+      toast.error("Please enter your name to sign");
+      return;
+    }
+
+    try {
+      // Get user's IP address
+      const ipResponse = await fetch('https://api.ipify.org?format=json');
+      const ipData = await ipResponse.json();
+      const ipAddress = ipData.ip;
+
+      const { error } = await supabase
+        .from("sick_notes")
+        .update({
+          status: 'signed',
+          signature_name: signatureName,
+          signature_timestamp: new Date().toISOString(),
+          signature_ip: ipAddress
+        })
+        .eq('id', selectedSickNoteId);
+
+      if (error) throw error;
+
+      // Generate PDF after signing
+      await handleDownloadSickNote(selectedSickNoteId, null);
+
+      toast.success("Sick note signed successfully");
+      setSignatureDialogOpen(false);
+      setSignatureName("");
+      setSelectedSickNoteId(null);
+      fetchDocuments();
+    } catch (error: any) {
+      console.error('Error signing sick note:', error);
+      toast.error(error.message || "Failed to sign sick note");
+    }
+  };
+
+  const canSignSickNote = (note: any) => {
+    return userRole === "doctor" && note.status === "draft";
   };
 
   if (loading) {
@@ -438,39 +486,55 @@ export function MedicalDocumentsDisplay({ visitId, userRole, currentUserId }: Me
                   </div>
                 )}
 
-                {note.status === "signed" && (
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleDownloadSickNote(note.id, note.pdf_url)}
-                      disabled={generatingPdf === note.id}
+                <div className="flex gap-2">
+                  {canSignSickNote(note) && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedSickNoteId(note.id);
+                        setSignatureDialogOpen(true);
+                      }}
                     >
-                      {generatingPdf === note.id ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Generating PDF...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="h-4 w-4 mr-2" />
-                          {note.pdf_url ? 'Download PDF' : 'Generate PDF'}
-                        </>
-                      )}
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Sign Sick Note
                     </Button>
-                    
-                    {note.pdf_url && (
+                  )}
+
+                  {note.status === "signed" && (
+                    <>
                       <Button 
-                        variant="ghost" 
+                        variant="outline" 
                         size="sm" 
-                        onClick={() => handleDownloadSickNote(note.id, null)}
+                        onClick={() => handleDownloadSickNote(note.id, note.pdf_url)}
                         disabled={generatingPdf === note.id}
                       >
-                        Regenerate PDF
+                        {generatingPdf === note.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating PDF...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4 mr-2" />
+                            {note.pdf_url ? 'Download PDF' : 'Generate PDF'}
+                          </>
+                        )}
                       </Button>
-                    )}
-                  </div>
-                )}
+                      
+                      {note.pdf_url && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleDownloadSickNote(note.id, null)}
+                          disabled={generatingPdf === note.id}
+                        >
+                          Regenerate PDF
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             ))}
             </CardContent>
@@ -489,6 +553,58 @@ export function MedicalDocumentsDisplay({ visitId, userRole, currentUserId }: Me
           currentUserId={currentUserId || ""} 
         />
       </TabsContent>
+
+      <Dialog open={signatureDialogOpen} onOpenChange={setSignatureDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PenLine className="h-5 w-5" />
+              Sign Sick Note
+            </DialogTitle>
+            <DialogDescription>
+              Please enter your full name to digitally sign this sick note.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="signature-name">Your Full Name</Label>
+              <Input
+                id="signature-name"
+                value={signatureName}
+                onChange={(e) => setSignatureName(e.target.value)}
+                placeholder="e.g., Dr. John Smith"
+                className="font-signature text-2xl"
+              />
+            </div>
+            
+            {signatureName && (
+              <div className="p-4 bg-muted/30 rounded-lg border">
+                <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                <p className="font-signature text-3xl text-foreground">
+                  {signatureName}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSignatureDialogOpen(false);
+                setSignatureName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSignSickNote}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Sign & Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }
