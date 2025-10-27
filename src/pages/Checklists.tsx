@@ -156,13 +156,19 @@ const Checklists = () => {
 
       if (error) throw error;
 
+      console.log("=== CHECKLIST SUBMISSION DEBUG ===");
+      console.log("All responses:", JSON.stringify(responses, null, 2));
+      console.log("Response values:", Object.values(responses));
+      
       // Check if any answers are "no"
       const hasNoAnswers = Object.values(responses).some(
-        (response: any) => response?.status === "no"
+        (response: any) => {
+          console.log("Checking response:", response, "Status:", response?.status);
+          return response?.status === "no";
+        }
       );
 
-      console.log("Checklist submission - has 'no' answers:", hasNoAnswers);
-      console.log("Responses:", responses);
+      console.log("Has 'no' answers:", hasNoAnswers);
 
       if (hasNoAnswers) {
         // Get user profile for webhook URL
