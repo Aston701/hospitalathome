@@ -394,15 +394,6 @@ serve(async (req) => {
         font: signatureFont,
       });
 
-      // Draw line just under the baseline so the signature "sits" on it
-      const sigLineY = sigBaseY - 3; // slightly below baseline
-      page.drawLine({
-        start: { x: sigLineStartX, y: sigLineY },
-        end: { x: sigLineEndX, y: sigLineY },
-        thickness: 1.2,
-        color: rgb(0, 0, 0),
-      });
-
       // Move cursor below the signature block
       yPosition -= 25;
     }
