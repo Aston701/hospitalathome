@@ -524,7 +524,6 @@ export type Database = {
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
-          zapier_webhook_url: string | null
         }
         Insert: {
           created_at?: string
@@ -536,7 +535,6 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
-          zapier_webhook_url?: string | null
         }
         Update: {
           created_at?: string
@@ -548,7 +546,6 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
-          zapier_webhook_url?: string | null
         }
         Relationships: []
       }
@@ -716,6 +713,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_settings: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          zapier_webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          zapier_webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          zapier_webhook_url?: string | null
+        }
+        Relationships: []
       }
       telehealth_sessions: {
         Row: {

@@ -21,6 +21,7 @@ const Settings = () => {
 
   useEffect(() => {
     fetchProfile();
+    fetchSystemSettings();
   }, []);
 
   const fetchProfile = async () => {
@@ -36,7 +37,6 @@ const Settings = () => {
 
       if (error) throw error;
       setProfile(data);
-      setZapierWebhookUrl(data?.zapier_webhook_url || "");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -48,19 +48,43 @@ const Settings = () => {
     }
   };
 
+  const fetchSystemSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("zapier_webhook_url")
+        .eq("id", "00000000-0000-0000-0000-000000000000")
+        .single();
+
+      if (error) throw error;
+      setZapierWebhookUrl(data?.zapier_webhook_url || "");
+    } catch (error: any) {
+      console.error("Error fetching system settings:", error);
+    }
+  };
+
   const handleProfileUpdate = async (field: string, value: any) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({ [field]: value })
-        .eq("id", user.id);
+      if (field === "zapier_webhook_url") {
+        // Update system settings instead of profile
+        const { error } = await supabase
+          .from("system_settings")
+          .update({ zapier_webhook_url: value })
+          .eq("id", "00000000-0000-0000-0000-000000000000");
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ [field]: value })
+          .eq("id", user.id);
 
-      setProfile((prev: any) => ({ ...prev, [field]: value }));
+        if (error) throw error;
+        setProfile((prev: any) => ({ ...prev, [field]: value }));
+      }
       
       toast({
         title: "Settings updated",

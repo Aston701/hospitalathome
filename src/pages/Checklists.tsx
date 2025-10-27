@@ -181,18 +181,18 @@ const Checklists = () => {
       console.log("Has 'no' answers:", hasNoAnswers);
 
       if (hasNoAnswers) {
-        // Get user profile for webhook URL
-        console.log("Fetching webhook URL for user:", user.id);
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
+        // Get webhook URL from system settings
+        console.log("Fetching webhook URL from system settings...");
+        const { data: settingsData, error: settingsError } = await supabase
+          .from("system_settings")
           .select("zapier_webhook_url")
-          .eq("id", user.id)
+          .eq("id", "00000000-0000-0000-0000-000000000000")
           .single();
 
-        console.log("Profile query result - data:", profileData, "error:", profileError);
-        console.log("Webhook URL from profile:", profileData?.zapier_webhook_url);
+        console.log("Settings query result - data:", settingsData, "error:", settingsError);
+        console.log("Webhook URL from settings:", settingsData?.zapier_webhook_url);
 
-        if (profileData?.zapier_webhook_url) {
+        if (settingsData?.zapier_webhook_url) {
           const template = templates.find(t => t.id === templateId);
           const noItems: string[] = [];
           
@@ -214,7 +214,7 @@ const Checklists = () => {
           // Trigger notification via Zapier
           const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('trigger-notification', {
             body: {
-              webhookUrl: profileData.zapier_webhook_url,
+              webhookUrl: settingsData.zapier_webhook_url,
               notificationType: 'checklist_alert',
               subject: `Equipment Checklist Alert - ${template?.name}`,
               message: `The following equipment issues were reported by ${staffName}:\n\n${noItems.join('\n')}`,
