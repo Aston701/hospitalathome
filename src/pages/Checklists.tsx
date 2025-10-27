@@ -131,6 +131,11 @@ const Checklists = () => {
   };
 
   const handleSubmit = async (templateId: string) => {
+    console.log("=== FORM SUBMISSION STARTED ===");
+    console.log("Staff name:", staffName);
+    console.log("Signature name:", signatureName);
+    console.log("Responses:", responses);
+    
     try {
       if (!staffName || !signatureName) {
         toast({
@@ -142,8 +147,12 @@ const Checklists = () => {
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log("No user found");
+        return;
+      }
 
+      console.log("Inserting checklist submission...");
       const { error } = await supabase
         .from("checklist_submissions" as any)
         .insert({
@@ -154,6 +163,7 @@ const Checklists = () => {
           signature_name: signatureName,
         } as any);
 
+      console.log("Insert result - error:", error);
       if (error) throw error;
 
       console.log("=== CHECKLIST SUBMISSION DEBUG ===");
