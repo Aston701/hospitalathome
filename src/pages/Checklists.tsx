@@ -156,6 +156,57 @@ const Checklists = () => {
 
       if (error) throw error;
 
+      // Check if any answers are "no"
+      const hasNoAnswers = Object.values(responses).some(
+        (response: any) => response?.status === "no"
+      );
+
+      if (hasNoAnswers) {
+        // Get user profile for webhook URL
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("zapier_webhook_url")
+          .eq("id", user.id)
+          .single();
+
+        if (profileData?.zapier_webhook_url) {
+          const template = templates.find(t => t.id === templateId);
+          const noItems: string[] = [];
+          
+          // Collect items with "no" answers
+          Object.entries(responses).forEach(([itemId, response]: [string, any]) => {
+            if (response?.status === "no") {
+              template?.sections?.forEach((section) => {
+                section.items?.forEach((item) => {
+                  if (item.id === itemId) {
+                    noItems.push(`${item.label}${response.comment ? `: ${response.comment}` : ''}`);
+                  }
+                });
+              });
+            }
+          });
+
+          // Trigger notification via Zapier
+          await supabase.functions.invoke('trigger-notification', {
+            body: {
+              webhookUrl: profileData.zapier_webhook_url,
+              notificationType: 'checklist_alert',
+              subject: `Equipment Checklist Alert - ${template?.name}`,
+              message: `The following equipment issues were reported by ${staffName}:\n\n${noItems.join('\n')}`,
+              recipientEmail: 'aston@mediresponse.co,sam@mediresponse.co',
+              recipientName: 'Management Team',
+              additionalData: {
+                checklistName: template?.name,
+                staffName: staffName,
+                submittedAt: new Date().toISOString(),
+                issues: noItems,
+                responses: responses
+              }
+            }
+          });
+        }
+      }
+
       toast({
         title: "Success",
         description: "Checklist submitted successfully",
