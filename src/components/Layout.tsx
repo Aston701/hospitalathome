@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   BookOpen,
-  CalendarClock
+  CalendarClock,
+  ClipboardCheck
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -73,6 +74,7 @@ const Layout = () => {
   const navItems = profile?.role === "nurse" 
     ? [
         { icon: Calendar, label: "My Visits", path: "/visits" },
+        { icon: ClipboardCheck, label: "Checklists", path: "/checklists" },
         { icon: BookOpen, label: "Training", path: "/training" },
       ]
     : [

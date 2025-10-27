@@ -18,6 +18,7 @@ import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import TrainingManuals from "./pages/TrainingManuals";
 import Roster from "./pages/Roster";
+import Checklists from "./pages/Checklists";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +76,11 @@ const App = () => (
           <Route path="users" element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <Users />
+            </ProtectedRoute>
+          } />
+          <Route path="checklists" element={
+            <ProtectedRoute allowedRoles={["nurse"]}>
+              <Checklists />
             </ProtectedRoute>
           } />
           <Route path="settings" element={<Settings />} />
