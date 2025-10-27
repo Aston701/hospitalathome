@@ -66,7 +66,7 @@ export type Database = {
           id: string
           pdf_url: string | null
           responses: Json
-          shift: string
+          shift: string | null
           signature_name: string
           signature_timestamp: string | null
           staff_name: string
@@ -78,7 +78,7 @@ export type Database = {
           id?: string
           pdf_url?: string | null
           responses?: Json
-          shift: string
+          shift?: string | null
           signature_name: string
           signature_timestamp?: string | null
           staff_name: string
@@ -90,7 +90,7 @@ export type Database = {
           id?: string
           pdf_url?: string | null
           responses?: Json
-          shift?: string
+          shift?: string | null
           signature_name?: string
           signature_timestamp?: string | null
           staff_name?: string

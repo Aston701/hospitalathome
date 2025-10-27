@@ -52,7 +52,6 @@ const Checklists = () => {
   
   // Form state
   const [staffName, setStaffName] = useState("");
-  const [shift, setShift] = useState("");
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [signatureName, setSignatureName] = useState("");
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -127,14 +126,13 @@ const Checklists = () => {
 
   const resetForm = () => {
     setStaffName("");
-    setShift("");
     setResponses({});
     setSignatureName("");
   };
 
   const handleSubmit = async (templateId: string) => {
     try {
-      if (!staffName || !shift || !signatureName) {
+      if (!staffName || !signatureName) {
         toast({
           variant: "destructive",
           title: "Error",
@@ -152,7 +150,6 @@ const Checklists = () => {
           template_id: templateId,
           user_id: user.id,
           staff_name: staffName,
-          shift: shift,
           responses: responses,
           signature_name: signatureName,
         } as any);
@@ -232,7 +229,7 @@ const Checklists = () => {
                 {!isViewOnlyRole && (
                   <>
                     {/* Header Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-secondary/50 rounded-lg">
                       <div className="space-y-2">
                         <Label htmlFor="staff-name">Staff Name *</Label>
                         <Input
@@ -241,19 +238,6 @@ const Checklists = () => {
                           onChange={(e) => setStaffName(e.target.value)}
                           placeholder="Enter your name"
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="shift">Shift *</Label>
-                        <Select value={shift} onValueChange={setShift}>
-                          <SelectTrigger id="shift">
-                            <SelectValue placeholder="Select shift" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="day">Day</SelectItem>
-                            <SelectItem value="night">Night</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Date & Time</Label>
@@ -389,14 +373,10 @@ const Checklists = () => {
                                         <span className="font-medium">Staff:</span> {submission.staff_name}
                                       </div>
                                       <div>
-                                        <span className="font-medium">Shift:</span>{" "}
-                                        {submission.shift.charAt(0).toUpperCase() + submission.shift.slice(1)}
-                                      </div>
-                                      <div>
                                         <span className="font-medium">Date:</span>{" "}
                                         {format(new Date(submission.submitted_at), "PPpp")}
                                       </div>
-                                      <div>
+                                      <div className="col-span-2">
                                         <span className="font-medium">Verified By:</span> {submission.signature_name}
                                       </div>
                                     </div>
