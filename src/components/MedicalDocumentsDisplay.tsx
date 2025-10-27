@@ -2,18 +2,23 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Loader2 } from "lucide-react";
+import { FileText, Download, Loader2, Pill, TestTube, Stethoscope, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PrescriptionManager from "./PrescriptionManager";
 
 interface MedicalDocumentsDisplayProps {
   visitId: string;
+  userRole?: string;
+  currentUserId?: string;
 }
 
-export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProps) {
+export function MedicalDocumentsDisplay({ visitId, userRole, currentUserId }: MedicalDocumentsDisplayProps) {
   const [diagnosticRequests, setDiagnosticRequests] = useState<any[]>([]);
   const [sickNotes, setSickNotes] = useState<any[]>([]);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
@@ -23,7 +28,7 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
 
   const fetchDocuments = async () => {
     try {
-      const [diagRes, sickRes] = await Promise.all([
+      const [diagRes, sickRes, prescRes] = await Promise.all([
         supabase
           .from("diagnostic_requests")
           .select("*")
@@ -34,12 +39,18 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
           .select("*")
           .eq("visit_id", visitId)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("prescriptions")
+          .select("*")
+          .eq("visit_id", visitId)
+          .order("created_at", { ascending: false }),
       ]);
 
       // Fetch user profiles for the requests
       const diagUserIds = diagRes.data?.map(d => d.requested_by).filter(Boolean) || [];
       const sickUserIds = sickRes.data?.map(s => s.issued_by).filter(Boolean) || [];
-      const allUserIds = [...new Set([...diagUserIds, ...sickUserIds])];
+      const prescUserIds = prescRes.data?.map(p => p.doctor_id).filter(Boolean) || [];
+      const allUserIds = [...new Set([...diagUserIds, ...sickUserIds, ...prescUserIds])];
 
       let userProfiles: Record<string, any> = {};
       if (allUserIds.length > 0) {
@@ -64,8 +75,14 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
         issued_by_profile: userProfiles[s.issued_by]
       })) || [];
 
+      const prescWithProfiles = prescRes.data?.map(p => ({
+        ...p,
+        doctor_profile: userProfiles[p.doctor_id]
+      })) || [];
+
       setDiagnosticRequests(diagWithProfiles);
       setSickNotes(sickWithProfiles);
+      setPrescriptions(prescWithProfiles);
     } catch (error) {
       console.error("Error fetching medical documents:", error);
     } finally {
@@ -141,17 +158,49 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
     return <div className="text-sm text-muted-foreground">Loading documents...</div>;
   }
 
-  if (diagnosticRequests.length === 0 && sickNotes.length === 0) {
+  const hasDiagnostic = diagnosticRequests.length > 0;
+  const hasSickNotes = sickNotes.length > 0;
+  const hasPrescriptions = prescriptions.length > 0;
+
+  if (!hasDiagnostic && !hasSickNotes && !hasPrescriptions) {
     return null;
   }
 
   return (
-    <div className="space-y-4">
-      {diagnosticRequests.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Diagnostic Test Requests</CardTitle>
-          </CardHeader>
+    <Tabs defaultValue="imaging" className="w-full">
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="imaging" className="flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4" />
+          <span className="hidden sm:inline">X-rays & Imaging</span>
+          <span className="sm:hidden">Imaging</span>
+          {hasDiagnostic && <Badge variant="secondary" className="ml-1">{diagnosticRequests.length}</Badge>}
+        </TabsTrigger>
+        <TabsTrigger value="diagnostic" className="flex items-center gap-2">
+          <TestTube className="h-4 w-4" />
+          <span className="hidden sm:inline">Diagnostic Tests</span>
+          <span className="sm:hidden">Tests</span>
+          {hasDiagnostic && <Badge variant="secondary" className="ml-1">{diagnosticRequests.length}</Badge>}
+        </TabsTrigger>
+        <TabsTrigger value="sick-notes" className="flex items-center gap-2">
+          <Stethoscope className="h-4 w-4" />
+          <span className="hidden sm:inline">Sick Notes</span>
+          <span className="sm:hidden">Sick</span>
+          {hasSickNotes && <Badge variant="secondary" className="ml-1">{sickNotes.length}</Badge>}
+        </TabsTrigger>
+        <TabsTrigger value="prescriptions" className="flex items-center gap-2">
+          <Pill className="h-4 w-4" />
+          <span className="hidden sm:inline">Prescriptions</span>
+          <span className="sm:hidden">Rx</span>
+          {hasPrescriptions && <Badge variant="secondary" className="ml-1">{prescriptions.length}</Badge>}
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="imaging" className="mt-4">
+        {hasDiagnostic ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Imaging Requests (X-rays & Ultrasound)</CardTitle>
+            </CardHeader>
           <CardContent className="space-y-4">
             {diagnosticRequests.map((request) => (
               <div key={request.id} className="border rounded-lg p-4 space-y-3">
@@ -224,15 +273,108 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="text-sm text-muted-foreground text-center py-8">
+            No imaging requests found for this visit.
+          </div>
+        )}
+      </TabsContent>
 
-      {sickNotes.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Sick Notes</CardTitle>
-          </CardHeader>
+      <TabsContent value="diagnostic" className="mt-4">
+        {hasDiagnostic ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Diagnostic Test Requests</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {diagnosticRequests.map((request) => (
+                <div key={request.id} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">
+                          Requested by: {request.requested_by_profile?.full_name || "Unknown"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(request.created_at), "PPp")}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={request.status === "pending" ? "outline" : "secondary"}>
+                      {request.status}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium mb-2">Tests Requested:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(request.tests_requested) &&
+                        request.tests_requested.map((test: any, idx: number) => (
+                          <Badge key={idx} variant="secondary" className="text-xs">
+                            {test.label}
+                          </Badge>
+                        ))}
+                    </div>
+                  </div>
+
+                  {request.clinical_notes && (
+                    <div>
+                      <p className="text-sm font-medium mb-1">Clinical Notes:</p>
+                      <p className="text-sm text-muted-foreground">{request.clinical_notes}</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDownloadImagingRequest(request.id, request.pdf_url)}
+                      disabled={generatingPdf === request.id}
+                    >
+                      {generatingPdf === request.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Generating PDF...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          {request.pdf_url ? 'Download PDF' : 'Generate PDF'}
+                        </>
+                      )}
+                    </Button>
+                    
+                    {request.pdf_url && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDownloadImagingRequest(request.id, null)}
+                        disabled={generatingPdf === request.id}
+                      >
+                        Regenerate PDF
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="text-sm text-muted-foreground text-center py-8">
+            No diagnostic test requests found for this visit.
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="sick-notes" className="mt-4">
+        {hasSickNotes ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Sick Notes</CardTitle>
+            </CardHeader>
           <CardContent className="space-y-4">
             {sickNotes.map((note) => (
               <div key={note.id} className="border rounded-lg p-4 space-y-3">
@@ -330,9 +472,22 @@ export function MedicalDocumentsDisplay({ visitId }: MedicalDocumentsDisplayProp
                 )}
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="text-sm text-muted-foreground text-center py-8">
+            No sick notes found for this visit.
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="prescriptions" className="mt-4">
+        <PrescriptionManager 
+          visitId={visitId} 
+          userRole={userRole || ""} 
+          currentUserId={currentUserId || ""} 
+        />
+      </TabsContent>
+    </Tabs>
   );
 }

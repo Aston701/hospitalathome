@@ -667,15 +667,11 @@ const VisitDetail = () => {
               }
             />
           </div>
-          <MedicalDocumentsDisplay visitId={visit.id} />
-          
-          <div className="mt-8">
-            <PrescriptionManager 
-              visitId={visit.id} 
-              userRole={userRole || ""} 
-              currentUserId={currentUserId || ""} 
-            />
-          </div>
+          <MedicalDocumentsDisplay 
+            visitId={visit.id}
+            userRole={userRole || ""}
+            currentUserId={currentUserId || ""}
+          />
         </CardContent>
       </Card>
 
