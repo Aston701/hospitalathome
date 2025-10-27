@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { User, Bell, Lock, Database } from "lucide-react";
+import { User, Bell, Lock, Database, Webhook } from "lucide-react";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -16,6 +16,8 @@ const Settings = () => {
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [visitReminders, setVisitReminders] = useState(true);
   const [assignmentAlerts, setAssignmentAlerts] = useState(true);
+  const [zapierWebhookUrl, setZapierWebhookUrl] = useState("");
+  const [testingWebhook, setTestingWebhook] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -34,6 +36,7 @@ const Settings = () => {
 
       if (error) throw error;
       setProfile(data);
+      setZapierWebhookUrl(data?.zapier_webhook_url || "");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -69,6 +72,50 @@ const Settings = () => {
         title: "Error",
         description: error.message
       });
+    }
+  };
+
+  const handleWebhookTest = async () => {
+    if (!zapierWebhookUrl) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a webhook URL first"
+      });
+      return;
+    }
+
+    setTestingWebhook(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('trigger-notification', {
+        body: {
+          webhookUrl: zapierWebhookUrl,
+          notificationType: 'test',
+          subject: 'Test Notification',
+          message: 'This is a test notification from your medical system.',
+          recipientEmail: 'test@example.com',
+          recipientName: 'Test User',
+          additionalData: {
+            timestamp: new Date().toISOString()
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Test notification sent",
+        description: "Check your Zapier workflow to confirm it was received."
+      });
+    } catch (error: any) {
+      console.error('Webhook test error:', error);
+      toast({
+        variant: "destructive",
+        title: "Test failed",
+        description: error.message
+      });
+    } finally {
+      setTestingWebhook(false);
     }
   };
 
@@ -204,6 +251,40 @@ const Settings = () => {
                 Update Password
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Zapier Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Webhook className="h-5 w-5" />
+              Zapier Integration
+            </CardTitle>
+            <CardDescription>Configure Zapier webhook for email notifications</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="zapier_webhook">Zapier Webhook URL</Label>
+              <Input
+                id="zapier_webhook"
+                value={zapierWebhookUrl}
+                onChange={(e) => setZapierWebhookUrl(e.target.value)}
+                onBlur={(e) => handleProfileUpdate("zapier_webhook_url", e.target.value)}
+                placeholder="https://hooks.zapier.com/hooks/catch/..."
+              />
+              <p className="text-xs text-muted-foreground">
+                This webhook will be used to send notifications via Zapier to Microsoft 365 Outlook
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleWebhookTest}
+              disabled={!zapierWebhookUrl || testingWebhook}
+            >
+              {testingWebhook ? "Testing..." : "Test Webhook"}
+            </Button>
           </CardContent>
         </Card>
 
