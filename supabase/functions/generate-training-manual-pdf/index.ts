@@ -1,10 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
-import { comprehensiveManuals } from "./comprehensive-manuals.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Map role names to file names
+const roleToFileName: Record<string, string> = {
+  'control_room': 'training-manual-control-room.md',
+  'doctor': 'training-manual-doctor.md',
+  'nurse': 'training-manual-nurse.md',
 };
 
 serve(async (req) => {
@@ -15,7 +21,8 @@ serve(async (req) => {
   try {
     const { role } = await req.json();
     
-    if (!role || !comprehensiveManuals[role]) {
+    const fileName = roleToFileName[role];
+    if (!fileName) {
       return new Response(
         JSON.stringify({ error: 'Invalid role specified' }),
         { 
@@ -25,7 +32,23 @@ serve(async (req) => {
       );
     }
 
-    const content = comprehensiveManuals[role];
+    // Read markdown file from docs directory
+    const filePath = `${Deno.cwd()}/../../docs/${fileName}`;
+    let content: string;
+    
+    try {
+      content = await Deno.readTextFile(filePath);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      return new Response(
+        JSON.stringify({ error: 'Could not read training manual file' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     const title = `${role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')} Training Manual`;
 
     // Create PDF
@@ -63,7 +86,7 @@ serve(async (req) => {
 
     yPosition -= 60;
 
-    // Process content
+    // Process markdown content
     const lines = content.split('\n');
     
     for (const line of lines) {
@@ -80,42 +103,35 @@ serve(async (req) => {
         continue;
       }
 
-      // Chapter headers (=== lines)
-      if (trimmedLine.startsWith('===')) {
+      // Skip markdown horizontal rules
+      if (trimmedLine.startsWith('---')) {
         yPosition -= 10;
         continue;
       }
 
-      // Major headers (all caps, no special characters)
-      if (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 0 && !trimmedLine.startsWith('-') && !trimmedLine.match(/^\d+\./)) {
+      // Handle markdown headers (# ## ###)
+      const headerMatch = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
+      if (headerMatch) {
+        const level = headerMatch[1].length;
+        const text = headerMatch[2];
+        
         yPosition -= 8;
         
-        // Check if it's a chapter title (contains "CHAPTER")
-        if (trimmedLine.includes('CHAPTER')) {
-          page.drawText(trimmedLine, {
-            x: margin,
-            y: yPosition,
-            size: fontSize + 4,
-            font: boldFont,
-            color: rgb(0.1, 0.2, 0.5),
-          });
-          yPosition -= lineHeight + 10;
-        } else {
-          page.drawText(trimmedLine, {
-            x: margin,
-            y: yPosition,
-            size: fontSize + 2,
-            font: boldFont,
-            color: rgb(0.2, 0.2, 0.4),
-          });
-          yPosition -= lineHeight + 5;
-        }
+        const headerSize = fontSize + (7 - level) * 2;
+        page.drawText(text, {
+          x: margin,
+          y: yPosition,
+          size: headerSize,
+          font: boldFont,
+          color: rgb(0.1, 0.2, 0.5),
+        });
+        yPosition -= lineHeight + 10;
         continue;
       }
 
-      // Bullet points or numbered lists
+      // Handle markdown lists (- or numbered)
       if (trimmedLine.startsWith('-') || /^\d+\./.test(trimmedLine)) {
-        const text = trimmedLine.replace(/^-/, '  -').replace(/^(\d+\.)/, '  $1');
+        const text = trimmedLine.replace(/^-\s*/, '• ').replace(/^(\d+\.)\s*/, '$1 ');
         const words = text.split(' ');
         let currentLine = '';
         
@@ -154,8 +170,11 @@ serve(async (req) => {
         continue;
       }
 
+      // Handle bold text in markdown (**text**)
+      const processedLine = trimmedLine.replace(/\*\*(.*?)\*\*/g, '$1');
+
       // Regular text with word wrap
-      const words = trimmedLine.split(' ');
+      const words = processedLine.split(' ');
       let currentLine = '';
       
       for (const word of words) {
@@ -194,7 +213,7 @@ serve(async (req) => {
 
     // Footer on last page
     const currentDate = new Date().toLocaleDateString();
-    page.drawText(`Last Updated: ${currentDate} | Version 2.0 Comprehensive Edition`, {
+    page.drawText(`Last Updated: ${currentDate} | Version 2.0 - Comprehensive Guide`, {
       x: margin,
       y: 30,
       size: 8,
