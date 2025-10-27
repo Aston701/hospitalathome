@@ -289,10 +289,26 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Prescriptions</h3>
+        {(userRole === "doctor" || userRole === "nurse") && !editingPrescription && (
+          <Button onClick={handleCreatePrescription} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            New Prescription
+          </Button>
+        )}
+      </div>
+
       {prescriptions.length === 0 && !editingPrescription ? (
         <div className="text-center py-8 text-muted-foreground">
           <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p>No prescriptions yet</p>
+          {(userRole === "doctor" || userRole === "nurse") && (
+            <Button onClick={handleCreatePrescription} className="mt-4" variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Create First Prescription
+            </Button>
+          )}
         </div>
       ) : (
         prescriptions.map((prescription) => (
