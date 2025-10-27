@@ -414,7 +414,19 @@ serve(async (req) => {
       });
       yPosition -= 15;
 
-      // Moved 'Authorized Medical Professional' directly under the signature date
+      // Add IP address if available
+      if (sickNote.signature_ip) {
+        page.drawText(`IP Address: ${sickNote.signature_ip}`, {
+          x: 70,
+          y: yPosition,
+          size: 9,
+          font: font,
+          color: rgb(0.5, 0.5, 0.5),
+        });
+        yPosition -= 15;
+      }
+
+      // Moved 'Authorized Medical Professional' directly under the signature info
       page.drawText("Authorized Medical Professional", {
         x: 70,
         y: yPosition,
