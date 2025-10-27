@@ -61,7 +61,7 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
     }
   };
 
-  const handleCreatePrescription = async () => {
+  const handleCreatePrescription = () => {
     setEditingPrescription(null);
     setItems([{ drug: "", dose: "", frequency: "", duration: "" }]);
     setPrescriptionDialogOpen(true);
