@@ -47,6 +47,8 @@ const Checklists = () => {
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [submissions, setSubmissions] = useState<ChecklistSubmission[]>([]);
   const [activeTab, setActiveTab] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("");
+  const [expandedSubmissions, setExpandedSubmissions] = useState<Record<string, boolean>>({});
   
   // Form state
   const [staffName, setStaffName] = useState("");
@@ -62,6 +64,20 @@ const Checklists = () => {
   const fetchChecklists = async () => {
     try {
       setLoading(true);
+
+      // Get user profile to check role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        
+        if (profileData) {
+          setUserRole(profileData.role);
+        }
+      }
 
       const { data: templatesData, error: templatesError } = await supabase
         .from("checklist_templates" as any)
@@ -163,6 +179,15 @@ const Checklists = () => {
     return submissions.filter((s) => s.template_id === templateId);
   };
 
+  const toggleSubmissionExpand = (submissionId: string) => {
+    setExpandedSubmissions({
+      ...expandedSubmissions,
+      [submissionId]: !expandedSubmissions[submissionId],
+    });
+  };
+
+  const isViewOnlyRole = userRole === "admin" || userRole === "control_room";
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -203,38 +228,41 @@ const Checklists = () => {
                 <CardDescription>{template.description}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Header Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg">
-                  <div className="space-y-2">
-                    <Label htmlFor="staff-name">Staff Name *</Label>
-                    <Input
-                      id="staff-name"
-                      value={staffName}
-                      onChange={(e) => setStaffName(e.target.value)}
-                      placeholder="Enter your name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="shift">Shift *</Label>
-                    <Select value={shift} onValueChange={setShift}>
-                      <SelectTrigger id="shift">
-                        <SelectValue placeholder="Select shift" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="day">Day</SelectItem>
-                        <SelectItem value="night">Night</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Date & Time</Label>
-                    <Input value={format(new Date(), "PPpp")} disabled />
-                  </div>
-                </div>
+                {/* Show form only for nurses */}
+                {!isViewOnlyRole && (
+                  <>
+                    {/* Header Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg">
+                      <div className="space-y-2">
+                        <Label htmlFor="staff-name">Staff Name *</Label>
+                        <Input
+                          id="staff-name"
+                          value={staffName}
+                          onChange={(e) => setStaffName(e.target.value)}
+                          placeholder="Enter your name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="shift">Shift *</Label>
+                        <Select value={shift} onValueChange={setShift}>
+                          <SelectTrigger id="shift">
+                            <SelectValue placeholder="Select shift" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">Day</SelectItem>
+                            <SelectItem value="night">Night</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Date & Time</Label>
+                        <Input value={format(new Date(), "PPpp")} disabled />
+                      </div>
+                    </div>
 
-                {/* Checklist Sections */}
-                {template.sections?.map((section, sectionIdx) => {
+                    {/* Checklist Sections */}
+                    {template.sections?.map((section, sectionIdx) => {
                   const sectionId = `${template.id}-${sectionIdx}`;
                   return (
                     <Collapsible
@@ -321,20 +349,22 @@ const Checklists = () => {
                   );
                 })}
 
-                {/* Signature Section */}
-                <div className="space-y-4 p-4 bg-secondary/50 rounded-lg">
-                  <Label htmlFor="signature">Completed and Verified By *</Label>
-                  <Input
-                    id="signature"
-                    value={signatureName}
-                    onChange={(e) => setSignatureName(e.target.value)}
-                    placeholder="Type your full name to sign"
-                  />
-                  <Button onClick={() => handleSubmit(template.id)} className="w-full" size="lg">
-                    <Send className="h-4 w-4 mr-2" />
-                    Submit Checklist
-                  </Button>
-                </div>
+                    {/* Signature Section */}
+                    <div className="space-y-4 p-4 bg-secondary/50 rounded-lg">
+                      <Label htmlFor="signature">Completed and Verified By *</Label>
+                      <Input
+                        id="signature"
+                        value={signatureName}
+                        onChange={(e) => setSignatureName(e.target.value)}
+                        placeholder="Type your full name to sign"
+                      />
+                      <Button onClick={() => handleSubmit(template.id)} className="w-full" size="lg">
+                        <Send className="h-4 w-4 mr-2" />
+                        Submit Checklist
+                      </Button>
+                    </div>
+                  </>
+                )}
 
                 {/* Submission History */}
                 <div className="space-y-4">
@@ -344,31 +374,84 @@ const Checklists = () => {
                   ) : (
                     <div className="space-y-3">
                       {getSubmissionsForTemplate(template.id).map((submission) => (
-                        <Card key={submission.id}>
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="space-y-2 flex-1">
-                                <div className="grid grid-cols-2 gap-2 text-sm">
-                                  <div>
-                                    <span className="font-medium">Staff:</span> {submission.staff_name}
+                        <Collapsible
+                          key={submission.id}
+                          open={expandedSubmissions[submission.id]}
+                          onOpenChange={() => toggleSubmissionExpand(submission.id)}
+                        >
+                          <Card>
+                            <CollapsibleTrigger className="w-full">
+                              <CardContent className="p-4 cursor-pointer hover:bg-secondary/30 transition-colors">
+                                <div className="flex items-start justify-between">
+                                  <div className="space-y-2 flex-1">
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                      <div>
+                                        <span className="font-medium">Staff:</span> {submission.staff_name}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Shift:</span>{" "}
+                                        {submission.shift.charAt(0).toUpperCase() + submission.shift.slice(1)}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Date:</span>{" "}
+                                        {format(new Date(submission.submitted_at), "PPpp")}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Verified By:</span> {submission.signature_name}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <span className="font-medium">Shift:</span>{" "}
-                                    {submission.shift.charAt(0).toUpperCase() + submission.shift.slice(1)}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Date:</span>{" "}
-                                    {format(new Date(submission.submitted_at), "PPpp")}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Verified By:</span> {submission.signature_name}
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                    <ChevronDown
+                                      className={`h-5 w-5 transition-transform ${
+                                        expandedSubmissions[submission.id] ? "rotate-180" : ""
+                                      }`}
+                                    />
                                   </div>
                                 </div>
-                              </div>
-                              <FileText className="h-5 w-5 text-primary ml-4" />
-                            </div>
-                          </CardContent>
-                        </Card>
+                              </CardContent>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <CardContent className="pt-0 pb-4 px-4 border-t">
+                                <div className="space-y-4 mt-4">
+                                  <h4 className="font-semibold text-sm">Responses:</h4>
+                                  {Object.entries(submission.responses).map(([itemId, response]: [string, any]) => {
+                                    // Find the item details from template
+                                    let itemLabel = itemId;
+                                    template.sections?.forEach((section) => {
+                                      section.items?.forEach((item) => {
+                                        if (item.id === itemId) {
+                                          itemLabel = item.label;
+                                        }
+                                      });
+                                    });
+
+                                    return (
+                                      <div key={itemId} className="p-3 bg-secondary/50 rounded-lg text-sm">
+                                        <div className="font-medium mb-1">{itemLabel}</div>
+                                        {response.status && (
+                                          <div className={`inline-flex px-2 py-1 rounded text-xs font-semibold ${
+                                            response.status === 'yes' 
+                                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                          }`}>
+                                            {response.status.toUpperCase()}
+                                          </div>
+                                        )}
+                                        {response.comment && (
+                                          <div className="mt-2 text-muted-foreground">
+                                            <span className="font-medium">Comment:</span> {response.comment}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </CardContent>
+                            </CollapsibleContent>
+                          </Card>
+                        </Collapsible>
                       ))}
                     </div>
                   )}
