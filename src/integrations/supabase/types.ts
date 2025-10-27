@@ -61,6 +61,104 @@ export type Database = {
           },
         ]
       }
+      checklist_completions: {
+        Row: {
+          completed_at: string | null
+          id: string
+          item_id: string
+          notes: string | null
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          item_id: string
+          notes?: string | null
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          item_id?: string
+          notes?: string | null
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_completions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_completions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_text: string
+          order_index: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_text: string
+          order_index: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_text?: string
+          order_index?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          order_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          order_index: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+        }
+        Relationships: []
+      }
       consultation_notes: {
         Row: {
           additional_notes: string | null
