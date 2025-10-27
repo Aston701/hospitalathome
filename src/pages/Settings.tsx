@@ -91,10 +91,10 @@ const Settings = () => {
         body: {
           webhookUrl: zapierWebhookUrl,
           notificationType: 'test',
-          subject: 'Test Notification',
-          message: 'This is a test notification from your medical system.',
-          recipientEmail: 'test@example.com',
-          recipientName: 'Test User',
+          subject: 'This is a test from hospital at home',
+          message: 'This is a test email.',
+          recipientEmail: 'aston@dbsk.co.za',
+          recipientName: 'Aston',
           additionalData: {
             timestamp: new Date().toISOString()
           }
