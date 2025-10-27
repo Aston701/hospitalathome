@@ -613,13 +613,7 @@ const VisitDetail = () => {
 
       <VitalsDisplay visitId={visit.id} />
 
-      <PrescriptionManager 
-        visitId={visit.id} 
-        userRole={userRole || ""} 
-        currentUserId={currentUserId || ""} 
-      />
-
-      <SickNoteManager 
+      <SickNoteManager
         visitId={visit.id}
         userRole={userRole || ""}
       />
@@ -674,6 +668,14 @@ const VisitDetail = () => {
             />
           </div>
           <MedicalDocumentsDisplay visitId={visit.id} />
+          
+          <div className="mt-8">
+            <PrescriptionManager 
+              visitId={visit.id} 
+              userRole={userRole || ""} 
+              currentUserId={currentUserId || ""} 
+            />
+          </div>
         </CardContent>
       </Card>
 
