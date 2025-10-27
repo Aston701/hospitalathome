@@ -23,7 +23,7 @@ import PrescriptionManager from "@/components/PrescriptionManager";
 import { DiagnosticRequestForm } from "@/components/DiagnosticRequestForm";
 import { ImagingRequestForm } from "@/components/ImagingRequestForm";
 import { SickNoteForm } from "@/components/SickNoteForm";
-import { SickNoteManager } from "@/components/SickNoteManager";
+
 import { ConsultationNotesForm } from "@/components/ConsultationNotesForm";
 import { ConsultationNotesList } from "@/components/ConsultationNotesList";
 import { MedicalDocumentsDisplay } from "@/components/MedicalDocumentsDisplay";
@@ -612,11 +612,6 @@ const VisitDetail = () => {
       )}
 
       <VitalsDisplay visitId={visit.id} />
-
-      <SickNoteManager
-        visitId={visit.id}
-        userRole={userRole || ""}
-      />
 
       <ConsultationNotesList visitId={visit.id} refreshTrigger={notesRefreshTrigger} />
 
