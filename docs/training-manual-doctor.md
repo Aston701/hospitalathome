@@ -281,6 +281,36 @@ When viewing a patient, you can see:
 
 ---
 
+## Equipment Checklists
+
+### Overview
+While checklists are primarily managed by nurses and control room staff, you can view equipment status to ensure your team has functional equipment for visits.
+
+### Viewing Checklists
+1. Click **"Checklists"** in the sidebar
+2. Review past submissions to check equipment status
+3. Monitor for any reported equipment issues that might affect patient care
+
+---
+
+## Settings
+
+### Accessing Settings
+1. Click **"Settings"** in the sidebar
+2. Manage your profile and preferences
+
+### Profile Management
+- Update your full name
+- Add or update contact information
+- Manage notification preferences
+
+### Notification Settings
+- Email Notifications
+- Visit Reminders
+- Assignment Alerts
+
+---
+
 ## Support
 
 For clinical questions:

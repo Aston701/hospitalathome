@@ -367,6 +367,47 @@ Scheduled → Assigned → En Route → On Site → Completed
 
 ---
 
+## Equipment Checklists
+
+### Overview
+Monitor equipment checklist submissions from staff to ensure all medical equipment is properly maintained.
+
+### Viewing Checklist Submissions
+1. Click **"Checklists"** in the sidebar
+2. View all submitted checklists
+3. Review equipment status reports
+4. Monitor for reported issues
+
+### Understanding Checklist Alerts
+When staff report equipment issues (select "No" on any item):
+- Automatic alert is sent to management via Zapier
+- You can view all submissions to track issues
+- Follow up with maintenance or replacement as needed
+- Ensure critical equipment is always functional
+
+### Best Practices
+- Review checklist submissions daily
+- Follow up on reported issues immediately
+- Track equipment maintenance history
+- Coordinate repairs or replacements promptly
+- Ensure adequate equipment for all visits
+
+---
+
+## Settings & System Configuration
+
+### Accessing Settings
+1. Click **"Settings"** in the sidebar (Admin access required for some features)
+
+### Zapier Integration (Admin Only)
+- View configured webhook URL
+- System automatically sends alerts for:
+  - Equipment checklist issues
+  - Critical system notifications
+  - Custom workflow triggers
+
+---
+
 ## Dashboard and Reporting
 
 ### Accessing the Dashboard

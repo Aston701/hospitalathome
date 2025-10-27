@@ -162,15 +162,83 @@ As an admin, you can:
 
 ---
 
-## Settings
+## Settings & System Configuration
 
 ### Accessing Settings
 1. Click **"Settings"** in the sidebar
-2. Configure system preferences:
-   - Notification settings
-   - Default visit durations
-   - Working hours
-   - System integrations
+2. Configure various system preferences
+
+### Profile Settings
+- Update your full name
+- Add or update phone number
+- Manage personal preferences
+
+### Notification Preferences
+- **Email Notifications**: Toggle email alerts on/off
+- **Visit Reminders**: Receive notifications for upcoming visits
+- **Assignment Alerts**: Get notified when assigned to new tasks
+
+### Zapier Integration
+The system integrates with Zapier for automated notifications and workflows.
+
+**Configuring Zapier Webhook:**
+1. Navigate to Settings page
+2. Scroll to **Zapier Integration** section
+3. Enter your Zapier webhook URL
+4. Click **Save Webhook URL**
+5. Click **Test Webhook** to verify the connection
+
+**What Gets Sent to Zapier:**
+- Equipment checklist alerts when issues are reported
+- Critical system notifications
+- Custom workflow triggers
+
+**Setting Up Your Zap:**
+1. Create a new Zap in Zapier
+2. Choose "Webhooks by Zapier" as the trigger
+3. Select "Catch Hook"
+4. Copy the webhook URL provided
+5. Paste it in the system Settings page
+6. Configure your Zap actions (e.g., send email via Outlook 365)
+7. Test the webhook from Settings to verify
+
+### Security Settings
+- **Multi-Factor Authentication**: Enable MFA for added security
+- **Password Management**: Change your password regularly
+- Use strong passwords and never share credentials
+
+---
+
+## Equipment Checklists
+
+### Overview
+The system includes equipment checklists to ensure all medical equipment is properly maintained and functional.
+
+### Accessing Checklists
+1. Click **"Checklists"** in the sidebar
+2. View available checklist templates
+3. Submit new checklists or review past submissions
+
+### Submitting a Checklist
+1. Select a checklist template (e.g., "Medical Equipment Daily Check")
+2. Fill in staff name
+3. For each equipment item, select **Yes** or **No**
+4. If **No**, provide details in the comment field
+5. Enter your signature name
+6. Click **Submit Checklist**
+
+### Automatic Alerts
+When equipment issues are reported (any "No" answers):
+- System automatically sends alerts via Zapier
+- Management team receives email notification
+- Issues are documented with staff name and timestamp
+- PDF record is generated for compliance
+
+### Viewing Past Submissions
+1. Click on **"Past Submissions"** tab
+2. Review all submitted checklists
+3. View staff signatures and timestamps
+4. Download PDF records as needed
 
 ---
 

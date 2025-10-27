@@ -346,6 +346,80 @@ Always check:
 
 ---
 
+## Equipment Checklists
+
+### Overview
+As a nurse, you're responsible for ensuring all medical equipment is functional and properly maintained. Regular equipment checks are critical for patient safety.
+
+### Accessing Checklists
+1. Click **"Checklists"** in the sidebar
+2. View available checklist templates
+3. Submit equipment checks regularly
+
+### Submitting Equipment Checklists
+
+**When to Submit:**
+- Daily before starting visits
+- After using equipment
+- When equipment issues are discovered
+- As required by your organization's protocols
+
+**How to Submit:**
+1. Select checklist template (e.g., "Medical Equipment Daily Check")
+2. Enter your name in the **Staff Name** field
+3. For each equipment item:
+   - Select **Yes** if equipment is functional
+   - Select **No** if there are any issues
+   - If you select **No**, provide detailed comments explaining the issue
+4. Review all items carefully
+5. Enter your name in the **Signature** field
+6. Click **Submit Checklist**
+
+### Automatic Issue Reporting
+When you report equipment problems (any "No" answers):
+- Management is automatically notified via email
+- Your submission is saved with timestamp
+- Issues are tracked for maintenance follow-up
+- You don't need to separately contact management
+
+### Equipment Checklist Items
+Typical items you'll check:
+- **ECG Module**: Leads functional, battery charged
+- **Pulse Oximeter**: Accurate readings, clean probe
+- **BP Device**: Cuff intact, proper calibration
+- **Thermometer**: Clean, functional, calibrated
+- **Glucose Machine**: Test strips available, batteries good
+- **Consumables**: Sufficient supplies (gloves, swabs, bandages)
+
+### Best Practices
+- Complete checklists honestly and thoroughly
+- Report issues immediately - don't wait
+- Provide specific details in comments
+- Never use equipment you've marked as problematic
+- Follow up to ensure issues are resolved
+
+### Viewing Past Submissions
+1. Click **"Past Submissions"** tab
+2. Review your previous checklists
+3. Check status of reported issues
+4. Download PDF records if needed
+
+---
+
+## Settings
+
+### Profile Management
+1. Click **"Settings"** in the sidebar
+2. Update your contact information
+3. Manage notification preferences
+
+### Notifications
+- Enable visit assignment alerts
+- Manage email notifications
+- Configure reminder preferences
+
+---
+
 ## Support
 
 For clinical questions:
