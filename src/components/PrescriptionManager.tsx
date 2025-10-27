@@ -62,11 +62,9 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
   };
 
   const handleCreatePrescription = () => {
-    console.log("Opening prescription dialog");
     setEditingPrescription(null);
     setItems([{ drug: "", dose: "", frequency: "", duration: "" }]);
     setPrescriptionDialogOpen(true);
-    console.log("Dialog state set to true");
   };
 
   const handleEditPrescription = (prescription: any) => {
@@ -415,10 +413,7 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
         ))
       )}
 
-      <Dialog open={prescriptionDialogOpen} onOpenChange={(open) => {
-        console.log("Dialog open state changing to:", open);
-        setPrescriptionDialogOpen(open);
-      }}>
+      <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
