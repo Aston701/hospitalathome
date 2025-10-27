@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, User, Calendar as CalendarIcon, Clock, MapPin, Navigation, Home, CheckCircle, Pencil } from "lucide-react";
+import { ArrowLeft, User, Calendar as CalendarIcon, Clock, MapPin, Navigation, Home, CheckCircle, Pencil, Pill } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import VisitTimeline from "@/components/VisitTimeline";
@@ -666,6 +666,57 @@ const VisitDetail = () => {
                 userRole === "control_room"
               }
             />
+            {(userRole === "nurse" || userRole === "doctor" || userRole === "admin" || userRole === "control_room") && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const { data: visitData } = await supabase
+                      .from("visits")
+                      .select("doctor_id")
+                      .eq("id", visit.id)
+                      .single();
+
+                    if (!visitData?.doctor_id) {
+                      toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: "This visit must have a doctor assigned before creating a prescription"
+                      });
+                      return;
+                    }
+
+                    const { data, error } = await supabase
+                      .from("prescriptions")
+                      .insert({
+                        visit_id: visit.id,
+                        doctor_id: visitData.doctor_id,
+                        items: [],
+                        status: "draft",
+                      })
+                      .select()
+                      .single();
+
+                    if (error) throw error;
+
+                    toast({
+                      title: "Success",
+                      description: "Prescription created"
+                    });
+                    window.location.reload();
+                  } catch (error: any) {
+                    toast({
+                      variant: "destructive",
+                      title: "Error",
+                      description: error.message
+                    });
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <Pill className="h-4 w-4" />
+                New Prescription
+              </Button>
+            )}
           </div>
           <MedicalDocumentsDisplay 
             visitId={visit.id}
