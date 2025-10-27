@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Loader2, Pill, TestTube, Stethoscope, FileSpreadsheet } from "lucide-react";
+import { FileText, Download, Loader2, Pill, TestTube, Stethoscope, FileSpreadsheet, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ export function MedicalDocumentsDisplay({ visitId, userRole, currentUserId }: Me
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("imaging");
 
   useEffect(() => {
     fetchDocuments();
@@ -166,34 +167,77 @@ export function MedicalDocumentsDisplay({ visitId, userRole, currentUserId }: Me
     return null;
   }
 
+  const handleCreatePrescription = async () => {
+    try {
+      const { data: visit } = await supabase
+        .from("visits")
+        .select("doctor_id")
+        .eq("id", visitId)
+        .single();
+
+      if (!visit?.doctor_id) {
+        toast.error("This visit must have a doctor assigned before creating a prescription");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("prescriptions")
+        .insert({
+          visit_id: visitId,
+          doctor_id: visit.doctor_id,
+          items: [],
+          status: "draft",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Prescription created");
+      fetchDocuments();
+      setActiveTab("prescriptions");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   return (
-    <Tabs defaultValue="imaging" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="imaging" className="flex items-center gap-2">
-          <FileSpreadsheet className="h-4 w-4" />
-          <span className="hidden sm:inline">X-rays & Imaging</span>
-          <span className="sm:hidden">Imaging</span>
-          {hasDiagnostic && <Badge variant="secondary" className="ml-1">{diagnosticRequests.length}</Badge>}
-        </TabsTrigger>
-        <TabsTrigger value="diagnostic" className="flex items-center gap-2">
-          <TestTube className="h-4 w-4" />
-          <span className="hidden sm:inline">Diagnostic Tests</span>
-          <span className="sm:hidden">Tests</span>
-          {hasDiagnostic && <Badge variant="secondary" className="ml-1">{diagnosticRequests.length}</Badge>}
-        </TabsTrigger>
-        <TabsTrigger value="sick-notes" className="flex items-center gap-2">
-          <Stethoscope className="h-4 w-4" />
-          <span className="hidden sm:inline">Sick Notes</span>
-          <span className="sm:hidden">Sick</span>
-          {hasSickNotes && <Badge variant="secondary" className="ml-1">{sickNotes.length}</Badge>}
-        </TabsTrigger>
-        <TabsTrigger value="prescriptions" className="flex items-center gap-2">
-          <Pill className="h-4 w-4" />
-          <span className="hidden sm:inline">Prescriptions</span>
-          <span className="sm:hidden">Rx</span>
-          {hasPrescriptions && <Badge variant="secondary" className="ml-1">{prescriptions.length}</Badge>}
-        </TabsTrigger>
-      </TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className="flex items-center justify-between mb-4">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsTrigger value="imaging" className="flex items-center gap-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline">X-rays & Imaging</span>
+            <span className="sm:hidden">Imaging</span>
+            {hasDiagnostic && <Badge variant="secondary" className="ml-1">{diagnosticRequests.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="diagnostic" className="flex items-center gap-2">
+            <TestTube className="h-4 w-4" />
+            <span className="hidden sm:inline">Diagnostic Tests</span>
+            <span className="sm:hidden">Tests</span>
+            {hasDiagnostic && <Badge variant="secondary" className="ml-1">{diagnosticRequests.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="sick-notes" className="flex items-center gap-2">
+            <Stethoscope className="h-4 w-4" />
+            <span className="hidden sm:inline">Sick Notes</span>
+            <span className="sm:hidden">Sick</span>
+            {hasSickNotes && <Badge variant="secondary" className="ml-1">{sickNotes.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="prescriptions" className="flex items-center gap-2">
+            <Pill className="h-4 w-4" />
+            <span className="hidden sm:inline">Prescriptions</span>
+            <span className="sm:hidden">Rx</span>
+            {hasPrescriptions && <Badge variant="secondary" className="ml-1">{prescriptions.length}</Badge>}
+          </TabsTrigger>
+        </TabsList>
+        
+        {activeTab === "prescriptions" && (userRole === "nurse" || userRole === "doctor" || userRole === "admin" || userRole === "control_room") && (
+          <Button onClick={handleCreatePrescription} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            New Prescription
+          </Button>
+        )}
+      </div>
 
       <TabsContent value="imaging" className="mt-4">
         {hasDiagnostic ? (

@@ -288,27 +288,15 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Prescriptions</CardTitle>
-          {(userRole === "nurse" || userRole === "doctor" || userRole === "admin" || userRole === "control_room") && (
-            <Button onClick={handleCreatePrescription} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Prescription
-            </Button>
-          )}
+    <div className="space-y-4">
+      {prescriptions.length === 0 && !editingPrescription ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p>No prescriptions yet</p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {prescriptions.length === 0 && !editingPrescription ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>No prescriptions yet</p>
-          </div>
-        ) : (
-          prescriptions.map((prescription) => (
-            <div key={prescription.id} className="border rounded-lg p-4 space-y-3">
+      ) : (
+        prescriptions.map((prescription) => (
+          <div key={prescription.id} className="border rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <h4 className="font-semibold">Prescription</h4>
@@ -483,7 +471,6 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
             </div>
           ))
         )}
-      </CardContent>
 
       <Dialog open={signatureDialogOpen} onOpenChange={setSignatureDialogOpen}>
         <DialogContent>
@@ -536,7 +523,7 @@ const PrescriptionManager = ({ visitId, userRole, currentUserId }: PrescriptionM
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 };
 
