@@ -79,7 +79,7 @@ const App = () => (
             </ProtectedRoute>
           } />
           <Route path="checklists" element={
-            <ProtectedRoute allowedRoles={["nurse"]}>
+            <ProtectedRoute allowedRoles={["nurse", "admin", "control_room"]}>
               <Checklists />
             </ProtectedRoute>
           } />

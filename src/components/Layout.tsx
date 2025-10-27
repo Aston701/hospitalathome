@@ -83,6 +83,7 @@ const Layout = () => {
         { icon: Calendar, label: "Visits", path: "/visits" },
         { icon: MapPin, label: "Dispatch", path: "/dispatch" },
         { icon: FileText, label: "Prescriptions", path: "/prescriptions" },
+        { icon: ClipboardCheck, label: "Checklists", path: "/checklists" },
         ...(profile?.role === "admin" || profile?.role === "control_room" ? [{ icon: CalendarClock, label: "Roster", path: "/roster" }] : []),
         ...(profile?.role === "admin" ? [{ icon: Settings, label: "Users", path: "/users" }] : []),
         { icon: BookOpen, label: "Training", path: "/training" },
