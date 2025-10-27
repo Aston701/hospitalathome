@@ -161,6 +161,9 @@ const Checklists = () => {
         (response: any) => response?.status === "no"
       );
 
+      console.log("Checklist submission - has 'no' answers:", hasNoAnswers);
+      console.log("Responses:", responses);
+
       if (hasNoAnswers) {
         // Get user profile for webhook URL
         const { data: profileData } = await supabase
@@ -168,6 +171,8 @@ const Checklists = () => {
           .select("zapier_webhook_url")
           .eq("id", user.id)
           .single();
+
+        console.log("Webhook URL from profile:", profileData?.zapier_webhook_url);
 
         if (profileData?.zapier_webhook_url) {
           const template = templates.find(t => t.id === templateId);
@@ -186,8 +191,10 @@ const Checklists = () => {
             }
           });
 
+          console.log("Triggering webhook with issues:", noItems);
+
           // Trigger notification via Zapier
-          await supabase.functions.invoke('trigger-notification', {
+          const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('trigger-notification', {
             body: {
               webhookUrl: profileData.zapier_webhook_url,
               notificationType: 'checklist_alert',
@@ -204,6 +211,12 @@ const Checklists = () => {
               }
             }
           });
+
+          if (webhookError) {
+            console.error("Webhook error:", webhookError);
+          } else {
+            console.log("Webhook triggered successfully:", webhookResponse);
+          }
         }
       }
 
