@@ -182,12 +182,14 @@ const Checklists = () => {
 
       if (hasNoAnswers) {
         // Get user profile for webhook URL
-        const { data: profileData } = await supabase
+        console.log("Fetching webhook URL for user:", user.id);
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("zapier_webhook_url")
           .eq("id", user.id)
           .single();
 
+        console.log("Profile query result - data:", profileData, "error:", profileError);
         console.log("Webhook URL from profile:", profileData?.zapier_webhook_url);
 
         if (profileData?.zapier_webhook_url) {
