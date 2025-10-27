@@ -135,6 +135,41 @@ export type Database = {
           },
         ]
       }
+      checklist_submissions: {
+        Row: {
+          completed_items: Json
+          id: string
+          notes: string | null
+          submitted_at: string | null
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_items?: Json
+          id?: string
+          notes?: string | null
+          submitted_at?: string | null
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          completed_items?: Json
+          id?: string
+          notes?: string | null
+          submitted_at?: string | null
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_submissions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_templates: {
         Row: {
           created_at: string | null

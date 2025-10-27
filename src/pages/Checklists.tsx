@@ -4,8 +4,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, ClipboardList } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Loader2, CheckCircle2, ClipboardList, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
 
 interface ChecklistTemplate {
   id: string;
@@ -32,12 +35,23 @@ interface ChecklistCompletion {
   notes: string | null;
 }
 
+interface ChecklistSubmission {
+  id: string;
+  user_id: string;
+  template_id: string;
+  submitted_at: string;
+  notes: string | null;
+  completed_items: string[];
+}
+
 const Checklists = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [completions, setCompletions] = useState<ChecklistCompletion[]>([]);
+  const [submissions, setSubmissions] = useState<ChecklistSubmission[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<string>("");
 
   useEffect(() => {
@@ -85,6 +99,15 @@ const Checklists = () => {
         if (completionsError) throw completionsError;
         setCompletions((completionsData as any) || []);
       }
+
+      // Fetch all submissions
+      const { data: submissionsData, error: submissionsError } = await supabase
+        .from("checklist_submissions" as any)
+        .select("*")
+        .order("submitted_at", { ascending: false });
+
+      if (submissionsError) throw submissionsError;
+      setSubmissions((submissionsData as any) || []);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -142,6 +165,59 @@ const Checklists = () => {
         description: error.message,
       });
     }
+  };
+
+  const handleSubmitChecklist = async (templateId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const templateItems = items.filter((item) => item.template_id === templateId);
+      const completedItemIds = templateItems
+        .filter((item) => isItemCompleted(item.id))
+        .map((item) => item.id);
+
+      const { error } = await supabase
+        .from("checklist_submissions" as any)
+        .insert({
+          user_id: user.id,
+          template_id: templateId,
+          notes: notes[templateId] || null,
+          completed_items: completedItemIds,
+        } as any);
+
+      if (error) throw error;
+
+      // Clear today's completions and notes for this template
+      const completionsToDelete = completions.filter((c) => c.template_id === templateId);
+      for (const completion of completionsToDelete) {
+        await supabase
+          .from("checklist_completions" as any)
+          .delete()
+          .eq("id", completion.id);
+      }
+
+      setCompletions(completions.filter((c) => c.template_id !== templateId));
+      setNotes({ ...notes, [templateId]: "" });
+
+      // Refresh submissions
+      await fetchChecklists();
+
+      toast({
+        title: "Success",
+        description: "Checklist submitted successfully",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  };
+
+  const getSubmissionsForTemplate = (templateId: string) => {
+    return submissions.filter((s) => s.template_id === templateId);
   };
 
   const getTemplateProgress = (templateId: string) => {
@@ -256,11 +332,64 @@ const Checklists = () => {
                       <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                         <CheckCircle2 className="h-5 w-5" />
                         <span className="font-medium">
-                          Checklist completed! Great work.
+                          All items checked! Add notes and submit below.
                         </span>
                       </div>
                     </div>
                   )}
+
+                  {/* Notes Section */}
+                  <div className="mt-6 space-y-3">
+                    <Label htmlFor={`notes-${template.id}`}>Notes (Optional)</Label>
+                    <Textarea
+                      id={`notes-${template.id}`}
+                      placeholder="Add any additional notes or observations..."
+                      value={notes[template.id] || ""}
+                      onChange={(e) => setNotes({ ...notes, [template.id]: e.target.value })}
+                      className="min-h-[100px]"
+                    />
+                    <Button
+                      onClick={() => handleSubmitChecklist(template.id)}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Submit Checklist
+                    </Button>
+                  </div>
+
+                  {/* Submission History */}
+                  <div className="mt-8 space-y-4">
+                    <h3 className="text-lg font-semibold">Submission History</h3>
+                    {getSubmissionsForTemplate(template.id).length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No submissions yet</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {getSubmissionsForTemplate(template.id).map((submission) => (
+                          <Card key={submission.id}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                  <p className="text-sm font-medium">
+                                    {format(new Date(submission.submitted_at), "PPpp")}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {submission.completed_items.length} items completed
+                                  </p>
+                                  {submission.notes && (
+                                    <p className="text-sm mt-2 p-2 bg-secondary rounded">
+                                      {submission.notes}
+                                    </p>
+                                  )}
+                                </div>
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
