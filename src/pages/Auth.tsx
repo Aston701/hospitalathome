@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Activity, Shield } from "lucide-react";
 
@@ -14,6 +15,9 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     // Check if user is already logged in
@@ -38,6 +42,18 @@ const Auth = () => {
 
       if (error) throw error;
 
+      // Check if user must change password
+      const mustChangePassword = data.user?.user_metadata?.must_change_password;
+      
+      if (mustChangePassword) {
+        setShowPasswordChange(true);
+        toast({
+          title: "Password Change Required",
+          description: "Please change your temporary password to continue."
+        });
+        return;
+      }
+
       // Get user role to redirect appropriately
       const { data: profile } = await supabase
         .from("profiles")
@@ -60,6 +76,62 @@ const Auth = () => {
       toast({
         variant: "destructive",
         title: "Sign in failed",
+        description: error.message
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords don't match",
+        description: "Please ensure both passwords are identical."
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        variant: "destructive",
+        title: "Password too short",
+        description: "Password must be at least 8 characters long."
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) throw updateError;
+
+      // Update user metadata to remove the flag
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.auth.updateUser({
+          data: { must_change_password: false }
+        });
+      }
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been successfully changed."
+      });
+
+      setShowPasswordChange(false);
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Password change failed",
         description: error.message
       });
     } finally {
@@ -127,6 +199,53 @@ const Auth = () => {
             </div>
           </CardContent>
         </Card>
+
+        <Dialog open={showPasswordChange} onOpenChange={setShowPasswordChange}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Your Password</DialogTitle>
+              <DialogDescription>
+                For security reasons, you must change your temporary password before continuing.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Must be at least 8 characters long
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  disabled={loading}
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Updating..." : "Change Password"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

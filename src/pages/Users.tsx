@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, User, Shield, Stethoscope, Radio, Pencil, UserX, UserCheck } from "lucide-react";
 
@@ -25,12 +26,14 @@ const Users = () => {
     full_name: string;
     role: AppRole;
     phone: string;
+    sendWelcomeEmail: boolean;
   }>({
     email: "",
     password: "",
     full_name: "",
     role: "nurse",
-    phone: ""
+    phone: "",
+    sendWelcomeEmail: false
   });
 
   useEffect(() => {
@@ -95,7 +98,8 @@ const Users = () => {
             password: formData.password,
             full_name: formData.full_name,
             role: formData.role,
-            phone: formData.phone
+            phone: formData.phone,
+            sendWelcomeEmail: formData.sendWelcomeEmail
           }
         });
 
@@ -114,7 +118,8 @@ const Users = () => {
         password: "",
         full_name: "",
         role: "nurse",
-        phone: ""
+        phone: "",
+        sendWelcomeEmail: false
       });
       fetchUsers();
     } catch (error: any) {
@@ -135,7 +140,8 @@ const Users = () => {
       password: "", // Password not needed for edit
       full_name: user.full_name,
       role: user.role,
-      phone: user.phone || ""
+      phone: user.phone || "",
+      sendWelcomeEmail: false
     });
     setDialogOpen(true);
   };
@@ -172,7 +178,8 @@ const Users = () => {
       password: "",
       full_name: "",
       role: "nurse",
-      phone: ""
+      phone: "",
+      sendWelcomeEmail: false
     });
     setDialogOpen(true);
   };
@@ -290,6 +297,23 @@ const Users = () => {
                   </SelectContent>
                 </Select>
               </div>
+              {!editingUserId && (
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="sendWelcomeEmail"
+                    checked={formData.sendWelcomeEmail}
+                    onCheckedChange={(checked) => 
+                      setFormData(prev => ({ ...prev, sendWelcomeEmail: checked as boolean }))
+                    }
+                  />
+                  <Label 
+                    htmlFor="sendWelcomeEmail" 
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Send welcome email with login credentials
+                  </Label>
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-4">
                 <Button
                   type="button"
