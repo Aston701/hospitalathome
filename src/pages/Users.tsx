@@ -181,10 +181,20 @@ const Users = () => {
     }
   };
 
-  const handleEditUser = (user: any) => {
+  const handleEditUser = async (user: any) => {
     setEditingUserId(user.id);
+    
+    // Fetch the user's email from auth.users via their profile
+    let userEmail = "";
+    try {
+      const { data: authData } = await supabase.auth.admin.getUserById(user.id);
+      userEmail = authData?.user?.email || "";
+    } catch (error) {
+      console.error('Error fetching user email:', error);
+    }
+    
     setFormData({
-      email: "", // Email can't be edited
+      email: userEmail,
       password: "", // Password not needed for edit
       full_name: user.full_name,
       role: user.role,
@@ -517,7 +527,19 @@ const Users = () => {
                   required
                 />
               </div>
-              {!editingUserId && (
+              {editingUserId ? (
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    disabled
+                    className="bg-muted cursor-not-allowed"
+                  />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                </div>
+              ) : (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email *</Label>
