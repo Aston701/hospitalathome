@@ -345,9 +345,9 @@ Each card shows:
 - Time in current status
 
 **Color Coding:**
-- 🟢 Green: On schedule
-- 🟡 Yellow: Attention needed
-- 🔴 Red: Urgent/overdue
+- GREEN: On schedule
+- YELLOW: Attention needed
+- RED: Urgent/overdue
 
 ### Managing the Dispatch Flow
 
@@ -1740,28 +1740,28 @@ While equipment checklists are primarily managed by nurses and control room, you
 ## Quick Reference
 
 ### Prescription Workflow
-1. Create → 2. Add Medications → 3. Review → 4. Save Draft → 5. Approve & Sign → 6. Download PDF
+1. Create -> 2. Add Medications -> 3. Review -> 4. Save Draft -> 5. Approve & Sign -> 6. Download PDF
 
 ### Key Safety Checks
-- ✅ Verify patient identity
-- ✅ Check known allergies
-- ✅ Review current medications
-- ✅ Confirm appropriate dosages
-- ✅ Check for drug interactions
-- ✅ Verify duration appropriate
+- Verify patient identity
+- Check known allergies
+- Review current medications
+- Confirm appropriate dosages
+- Check for drug interactions
+- Verify duration appropriate
 
 ### Status Indicators
-- 📝 **Draft**: Still being prepared, can edit
-- ⏳ **Pending Approval**: Ready for your review
-- ✅ **Approved**: Signed and official, cannot edit
+- **Draft**: Still being prepared, can edit
+- **Pending Approval**: Ready for your review
+- **Approved**: Signed and official, cannot edit
 
 ### Important Reminders
-- ⚠️ Always verify patient allergies before prescribing
-- ⚠️ Check for drug interactions with current medications
-- ⚠️ Digital signatures are legally binding
-- ⚠️ Cannot edit approved prescriptions - must create new
-- ⚠️ Document all clinical decisions
-- ⚠️ Complete notes promptly while fresh
+- WARNING: Always verify patient allergies before prescribing
+- WARNING: Check for drug interactions with current medications
+- WARNING: Digital signatures are legally binding
+- WARNING: Cannot edit approved prescriptions - must create new
+- WARNING: Document all clinical decisions
+- WARNING: Complete notes promptly while fresh
 
 ---
 

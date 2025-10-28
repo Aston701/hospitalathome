@@ -64,22 +64,13 @@ serve(async (req) => {
     yPosition -= 60;
 
     // Sanitize content to remove characters that WinAnsi cannot encode
+    // WinAnsi supports characters in range 0x20-0xFF (basic ASCII + Latin-1)
     const sanitizeText = (text: string): string => {
       return text
-        // Replace arrows
-        .replace(/→/g, '->')
-        .replace(/←/g, '<-')
-        .replace(/↑/g, '^')
-        .replace(/↓/g, 'v')
-        // Replace emojis and special symbols
-        .replace(/🟢/g, '[GREEN]')
-        .replace(/🟡/g, '[YELLOW]')
-        .replace(/🔴/g, '[RED]')
-        .replace(/✓/g, 'Y')
-        .replace(/✗/g, 'X')
-        .replace(/•/g, '- ')
-        // Remove any other characters outside WinAnsi range (0x20-0xFF)
-        .replace(/[^\x20-\xFF]/g, '');
+        // Remove any characters outside WinAnsi range, including all emojis and special Unicode
+        .replace(/[^\x20-\x7E\xA0-\xFF\r\n\t]/g, '')
+        // Clean up any double spaces that might result
+        .replace(/  +/g, ' ');
     };
 
     // Process markdown content
