@@ -4,8 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Search, User, Phone, MapPin, Upload, Download, Trash2 } from "lucide-react";
+import { Plus, Search, User, Phone, MapPin, Upload, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from 'xlsx';
@@ -17,7 +16,6 @@ const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchPatients();
@@ -232,36 +230,6 @@ const Patients = () => {
     }
   };
 
-  const handleDeleteAllPatients = async () => {
-    setLoading(true);
-    try {
-      // Delete all patients - this will cascade to related records due to foreign key constraints
-      const { error } = await supabase
-        .from('patients')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
-
-      if (error) throw error;
-
-      toast({
-        title: "All patients deleted",
-        description: "All patient records and related data have been removed."
-      });
-
-      setDeleteAllDialogOpen(false);
-      fetchPatients();
-    } catch (error: any) {
-      console.error('Delete all patients error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -280,14 +248,6 @@ const Patients = () => {
             onChange={handleFileChange}
             className="hidden"
           />
-          <Button 
-            variant="outline" 
-            onClick={() => setDeleteAllDialogOpen(true)}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete All Patients
-          </Button>
           <Button variant="outline" onClick={handleDownloadSample}>
             <Download className="h-4 w-4 mr-2" />
             Download Sample CSV
@@ -399,34 +359,6 @@ const Patients = () => {
           ))
         )}
       </div>
-
-      <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete All Patients?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete <strong>ALL {patients.length} patient record(s)</strong> and all associated data including:
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Visit records</li>
-                <li>Consultation notes</li>
-                <li>Prescriptions</li>
-                <li>Sick notes</li>
-                <li>Diagnostic requests</li>
-              </ul>
-              <p className="mt-3 font-semibold text-destructive">This action cannot be undone.</p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAllPatients}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete All Patients
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
