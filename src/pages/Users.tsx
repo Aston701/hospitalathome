@@ -117,7 +117,8 @@ const Users = () => {
 
         if (error) {
           console.error('Edge function error:', error);
-          throw new Error(`Failed to create user: ${error.message}`);
+          // Try to get more detailed error from the response
+          throw new Error(error.message || 'Failed to create user');
         }
         
         // Check for function execution errors in the response
