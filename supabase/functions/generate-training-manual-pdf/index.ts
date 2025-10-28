@@ -63,8 +63,28 @@ serve(async (req) => {
 
     yPosition -= 60;
 
+    // Sanitize content to remove characters that WinAnsi cannot encode
+    const sanitizeText = (text: string): string => {
+      return text
+        // Replace arrows
+        .replace(/→/g, '->')
+        .replace(/←/g, '<-')
+        .replace(/↑/g, '^')
+        .replace(/↓/g, 'v')
+        // Replace emojis and special symbols
+        .replace(/🟢/g, '[GREEN]')
+        .replace(/🟡/g, '[YELLOW]')
+        .replace(/🔴/g, '[RED]')
+        .replace(/✓/g, 'Y')
+        .replace(/✗/g, 'X')
+        .replace(/•/g, '- ')
+        // Remove any other characters outside WinAnsi range (0x20-0xFF)
+        .replace(/[^\x20-\xFF]/g, '');
+    };
+
     // Process markdown content
-    const lines = content.split('\n');
+    const sanitizedContent = sanitizeText(content);
+    const lines = sanitizedContent.split('\n');
     
     for (const line of lines) {
       // Check if we need a new page
