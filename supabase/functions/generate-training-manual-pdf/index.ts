@@ -128,7 +128,8 @@ serve(async (req) => {
 
       // Handle markdown lists (- or numbered)
       if (trimmedLine.startsWith('-') || /^\d+\./.test(trimmedLine)) {
-        const text = trimmedLine.replace(/^-\s*/, '• ').replace(/^(\d+\.)\s*/, '$1 ');
+        // Use asterisk instead of bullet point to avoid WinAnsi encoding issues
+        const text = trimmedLine.replace(/^-\s*/, '* ').replace(/^(\d+\.)\s*/, '$1 ');
         const words = text.split(' ');
         let currentLine = '';
         
