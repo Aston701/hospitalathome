@@ -130,7 +130,7 @@ serve(async (req) => {
           .single()
 
         if (settings?.zapier_webhook_url) {
-          const loginUrl = `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovableproject.com')}/auth`
+          const loginUrl = 'https://hospitalathome.mediresponse.co/auth'
           
           // Create formatted email body
           const emailBody = `
