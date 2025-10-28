@@ -78,17 +78,27 @@ const Users = () => {
 
         if (profileError) throw profileError;
 
-        // Update user_roles
-        const { error: roleError } = await supabase
+        // Delete existing role and insert new one to ensure consistency
+        const { error: deleteRoleError } = await supabase
           .from("user_roles")
-          .update({ role: formData.role })
+          .delete()
           .eq("user_id", editingUserId);
 
-        if (roleError) throw roleError;
+        if (deleteRoleError) throw deleteRoleError;
+
+        // Insert the new role
+        const { error: insertRoleError } = await supabase
+          .from("user_roles")
+          .insert({ 
+            user_id: editingUserId,
+            role: formData.role 
+          });
+
+        if (insertRoleError) throw insertRoleError;
 
         toast({
           title: "User updated",
-          description: `${formData.full_name} has been updated successfully.`
+          description: `${formData.full_name}'s role has been changed to ${formData.role}.`
         });
       } else {
         // Create new user
