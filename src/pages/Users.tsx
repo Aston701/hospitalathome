@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,12 +11,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, User, Shield, Stethoscope, Radio, Pencil, UserX, UserCheck, Trash2 } from "lucide-react";
+import { Plus, User, Shield, Stethoscope, Radio, Pencil, UserX, UserCheck, Trash2, Upload, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 const Users = () => {
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -265,6 +267,166 @@ const Users = () => {
     }
   };
 
+  const handleDownloadSample = () => {
+    // Create sample CSV data
+    const sampleData = [
+      ['email', 'password', 'full_name', 'role', 'phone', 'send_welcome_email'],
+      ['john.doe@example.com', 'SecurePass123!', 'John Doe', 'nurse', '+27123456789', 'true'],
+      ['jane.smith@example.com', 'SecurePass456!', 'Jane Smith', 'doctor', '+27987654321', 'false'],
+      ['admin.user@example.com', 'AdminPass789!', 'Admin User', 'admin', '', 'true']
+    ];
+
+    // Convert to CSV string
+    const csvContent = sampleData.map(row => row.join(',')).join('\n');
+    
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'users_import_sample.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Sample downloaded",
+      description: "Check your downloads folder for the sample CSV file."
+    });
+  };
+
+  const handleImportCSV = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.name.endsWith('.csv')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file",
+        description: "Please upload a CSV file."
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const reader = new FileReader();
+      
+      reader.onload = async (event) => {
+        try {
+          const data = event.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+
+          // Validate headers
+          const headers = jsonData[0];
+          const requiredHeaders = ['email', 'password', 'full_name', 'role'];
+          const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+          
+          if (missingHeaders.length > 0) {
+            throw new Error(`Missing required columns: ${missingHeaders.join(', ')}`);
+          }
+
+          // Get column indices
+          const emailIdx = headers.indexOf('email');
+          const passwordIdx = headers.indexOf('password');
+          const fullNameIdx = headers.indexOf('full_name');
+          const roleIdx = headers.indexOf('role');
+          const phoneIdx = headers.indexOf('phone');
+          const sendEmailIdx = headers.indexOf('send_welcome_email');
+
+          // Process each row (skip header)
+          const results = { success: 0, failed: 0, errors: [] as string[] };
+          
+          for (let i = 1; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            
+            // Skip empty rows
+            if (!row || row.length === 0 || !row[emailIdx]) continue;
+
+            try {
+              const userData = {
+                email: row[emailIdx]?.toString().trim(),
+                password: row[passwordIdx]?.toString().trim(),
+                full_name: row[fullNameIdx]?.toString().trim(),
+                role: row[roleIdx]?.toString().trim().toLowerCase().replace(/ /g, '_'),
+                phone: row[phoneIdx]?.toString().trim() || '',
+                sendWelcomeEmail: row[sendEmailIdx]?.toString().toLowerCase() === 'true'
+              };
+
+              // Validate role
+              const validRoles = ['admin', 'doctor', 'nurse', 'control_room'];
+              if (!validRoles.includes(userData.role)) {
+                throw new Error(`Invalid role: ${userData.role}`);
+              }
+
+              // Create user
+              const { data, error } = await supabase.functions.invoke('create-user', {
+                body: userData
+              });
+
+              if (error || data?.error) {
+                throw new Error(error?.message || data?.error);
+              }
+
+              results.success++;
+            } catch (error: any) {
+              results.failed++;
+              results.errors.push(`Row ${i + 1} (${row[emailIdx]}): ${error.message}`);
+            }
+          }
+
+          // Show results
+          if (results.success > 0) {
+            toast({
+              title: "Import completed",
+              description: `Successfully imported ${results.success} user(s). ${results.failed > 0 ? `${results.failed} failed.` : ''}`
+            });
+          }
+
+          if (results.errors.length > 0) {
+            console.error('Import errors:', results.errors);
+            toast({
+              variant: "destructive",
+              title: "Some imports failed",
+              description: `${results.failed} user(s) failed to import. Check console for details.`
+            });
+          }
+
+          fetchUsers();
+        } catch (error: any) {
+          toast({
+            variant: "destructive",
+            title: "Import failed",
+            description: error.message
+          });
+        } finally {
+          setLoading(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }
+      };
+
+      reader.readAsBinaryString(file);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error reading file",
+        description: error.message
+      });
+      setLoading(false);
+    }
+  };
+
   const handleAddUser = () => {
     setEditingUserId(null);
     setFormData({
@@ -313,14 +475,30 @@ const Users = () => {
             Manage system users and their roles
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleAddUser}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+        <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Button variant="outline" onClick={handleDownloadSample}>
+            <Download className="h-4 w-4 mr-2" />
+            Download Sample CSV
+          </Button>
+          <Button variant="outline" onClick={handleImportCSV}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import CSV
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleAddUser}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>{editingUserId ? "Edit User" : "Create New User"}</DialogTitle>
               <DialogDescription>
@@ -422,7 +600,8 @@ const Users = () => {
               </div>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {loading ? (
