@@ -1,6 +1,7 @@
 // supabase/functions/generate-imaging-request-pdf/index.ts
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -388,20 +389,14 @@ Deno.serve(async (req) => {
     console.log('Request method:', req.method);
     console.log('Request content-type:', req.headers.get('content-type'));
     
-    let requestId;
-    
-    // Parse request body
+    // Validate input with Zod schema
+    const requestSchema = z.object({
+      requestId: z.string().uuid('Invalid request ID format')
+    });
+
     const body = await req.json();
     console.log('Request body:', body);
-    requestId = body.requestId;
-
-    if (!requestId) {
-      console.error('No requestId provided in body');
-      return new Response(JSON.stringify({ error: "requestId is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { requestId } = requestSchema.parse(body);
 
     // Initialize Supabase client
     const supabaseClient = createClient(

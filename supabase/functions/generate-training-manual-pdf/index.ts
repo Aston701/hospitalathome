@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { trainingManualContent } from "./training-manual-content.ts";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const { role } = await req.json();
+    // Validate input with Zod schema
+    const requestSchema = z.object({
+      role: z.enum(['admin', 'doctor', 'nurse', 'control_room'])
+    });
+
+    const body = await req.json();
+    const { role } = requestSchema.parse(body);
     
     const content = trainingManualContent[role];
     if (!content) {

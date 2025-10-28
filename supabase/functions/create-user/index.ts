@@ -183,10 +183,9 @@ serve(async (req) => {
 </html>
           `.trim()
 
-          // Trigger notification via Zapier
+          // Trigger notification (webhook URL is fetched from system settings inside the function)
           await supabaseAdmin.functions.invoke('trigger-notification', {
             body: {
-              webhookUrl: settings.zapier_webhook_url,
               notificationType: 'user_welcome',
               subject: 'Welcome to Hospital at Home - Your Account Details',
               message: emailBody,
@@ -217,15 +216,18 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    // Log detailed error server-side only
     console.error('Error in create-user function:', error);
+    console.error('Detailed stack trace:', error instanceof Error ? error.stack : error);
+    
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
     const statusCode = error instanceof Error && error.message.includes('Forbidden') ? 403 : 
                        error instanceof Error && error.message.includes('Unauthorized') ? 401 : 400;
     
     return new Response(
       JSON.stringify({ 
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined
+        error: errorMessage
+        // Never include stack traces, internal paths, or detailed error objects
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

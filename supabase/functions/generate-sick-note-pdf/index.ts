@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,25 +17,13 @@ serve(async (req) => {
   try {
     const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
-    // Parse request body with error handling
-    let sickNoteId: string | undefined;
-    try {
-      const body = await req.json();
-      sickNoteId = body.sickNoteId;
-    } catch (jsonError) {
-      console.error("Error parsing request body:", jsonError);
-      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Validate input with Zod schema
+    const requestSchema = z.object({
+      sickNoteId: z.string().uuid('Invalid sick note ID format')
+    });
 
-    if (!sickNoteId) {
-      return new Response(JSON.stringify({ error: "Sick note ID is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const body = await req.json();
+    const { sickNoteId } = requestSchema.parse(body);
 
     console.log("Generating PDF for sick note:", sickNoteId);
 

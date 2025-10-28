@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,15 +67,13 @@ serve(async (req) => {
       )
     }
 
-    // Get user ID to delete from request
-    const { userId } = await req.json()
-    
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'User ID is required' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
+    // Validate user ID format
+    const deleteUserSchema = z.object({
+      userId: z.string().uuid('Invalid user ID format')
+    })
+
+    const rawData = await req.json()
+    const { userId } = deleteUserSchema.parse(rawData)
 
     // Prevent self-deletion
     if (userId === user.id) {
@@ -104,15 +103,30 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    // Log detailed error server-side only
     console.error('Error in delete-user function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
-    const statusCode = error instanceof Error && error.message.includes('Forbidden') ? 403 : 
-                       error instanceof Error && error.message.includes('Unauthorized') ? 401 : 400;
+    console.error('Detailed stack trace:', error instanceof Error ? error.stack : error);
+    
+    let errorMessage = 'An error occurred while deleting the user'
+    let statusCode = 500
+
+    if (error instanceof z.ZodError) {
+      errorMessage = 'Invalid user ID provided'
+      statusCode = 400
+    } else if (error instanceof Error) {
+      if (error.message.includes('Forbidden')) {
+        errorMessage = 'You do not have permission to delete users'
+        statusCode = 403
+      } else if (error.message.includes('Unauthorized')) {
+        errorMessage = 'Authentication required'
+        statusCode = 401
+      }
+    }
     
     return new Response(
       JSON.stringify({ 
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined
+        error: errorMessage
+        // Never include stack traces, internal paths, or detailed error objects
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

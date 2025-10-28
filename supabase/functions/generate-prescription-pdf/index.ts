@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,25 +17,13 @@ serve(async (req) => {
   try {
     console.log('Starting PDF generation...');
     
-    // Parse request body with error handling
-    let prescriptionId: string | undefined;
-    try {
-      const body = await req.json();
-      prescriptionId = body.prescriptionId;
-    } catch (jsonError) {
-      console.error("Error parsing request body:", jsonError);
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    if (!prescriptionId) {
-      return new Response(
-        JSON.stringify({ error: 'Prescription ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Validate input with Zod schema
+    const requestSchema = z.object({
+      prescriptionId: z.string().uuid('Invalid prescription ID format')
+    });
+
+    const body = await req.json();
+    const { prescriptionId } = requestSchema.parse(body);
     
     console.log('Prescription ID:', prescriptionId);
 
