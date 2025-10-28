@@ -1,16 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { trainingManualContent } from "./training-manual-content.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Map role names to file names
-const roleToFileName: Record<string, string> = {
-  'control_room': 'training-manual-control-room.md',
-  'doctor': 'training-manual-doctor.md',
-  'nurse': 'training-manual-nurse.md',
 };
 
 serve(async (req) => {
@@ -21,29 +15,12 @@ serve(async (req) => {
   try {
     const { role } = await req.json();
     
-    const fileName = roleToFileName[role];
-    if (!fileName) {
+    const content = trainingManualContent[role];
+    if (!content) {
       return new Response(
         JSON.stringify({ error: 'Invalid role specified' }),
         { 
           status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Read markdown file from docs directory
-    const filePath = `${Deno.cwd()}/../../docs/${fileName}`;
-    let content: string;
-    
-    try {
-      content = await Deno.readTextFile(filePath);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      return new Response(
-        JSON.stringify({ error: 'Could not read training manual file' }),
-        { 
-          status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
