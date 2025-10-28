@@ -132,32 +132,55 @@ serve(async (req) => {
         if (settings?.zapier_webhook_url) {
           const loginUrl = 'https://hospitalathome.mediresponse.co/auth'
           
-          // Create formatted email body
+          // Create formatted HTML email body
           const emailBody = `
-Hello ${full_name},
-
-Welcome to Hospital at Home! Your account has been created successfully.
-
-Your Login Details:
-- Email: ${email}
-- Temporary Password: ${password}
-- Role: ${role.replace(/_/g, ' ').toUpperCase()}
-
-Login URL: ${loginUrl}
-
-IMPORTANT SECURITY NOTICE:
-For your security, you will be required to change this temporary password when you first log in. Please keep these credentials confidential and change your password immediately upon first access.
-
-Instructions:
-1. Visit the login URL above
-2. Enter your email and temporary password
-3. You will be prompted to create a new secure password
-4. Choose a strong password with at least 8 characters
-
-If you have any questions or need assistance, please contact your administrator.
-
-Best regards,
-Hospital at Home Team
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h1 style="color: #2563eb; margin-bottom: 20px;">Welcome to Hospital at Home!</h1>
+  
+  <p>Hello <strong>${full_name}</strong>,</p>
+  
+  <p>Your account has been created successfully.</p>
+  
+  <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h2 style="margin-top: 0; color: #1f2937;">Your Login Details:</h2>
+    <ul style="list-style: none; padding: 0;">
+      <li style="margin: 10px 0;"><strong>Email:</strong> ${email}</li>
+      <li style="margin: 10px 0;"><strong>Temporary Password:</strong> ${password}</li>
+      <li style="margin: 10px 0;"><strong>Role:</strong> ${role.replace(/_/g, ' ').toUpperCase()}</li>
+    </ul>
+    <p style="margin: 15px 0;">
+      <a href="${loginUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Login Now</a>
+    </p>
+    <p style="margin: 10px 0; font-size: 14px; color: #6b7280;">Login URL: <a href="${loginUrl}" style="color: #2563eb;">${loginUrl}</a></p>
+  </div>
+  
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+    <h3 style="margin-top: 0; color: #dc2626;">IMPORTANT SECURITY NOTICE:</h3>
+    <p>For your security, you will be required to change this temporary password when you first log in. Please keep these credentials confidential and change your password immediately upon first access.</p>
+  </div>
+  
+  <h3 style="color: #1f2937;">Instructions:</h3>
+  <ol style="line-height: 1.8;">
+    <li>Visit the login URL above</li>
+    <li>Enter your email and temporary password</li>
+    <li>You will be prompted to create a new secure password</li>
+    <li>Choose a strong password with at least 8 characters</li>
+  </ol>
+  
+  <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">If you have any questions or need assistance, please contact your administrator.</p>
+  
+  <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+    <p style="margin: 0;"><strong>Best regards,</strong></p>
+    <p style="margin: 5px 0;">Hospital at Home Team</p>
+  </div>
+</body>
+</html>
           `.trim()
 
           // Trigger notification via Zapier
