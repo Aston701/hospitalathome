@@ -217,12 +217,19 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error in create-user function:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+    const statusCode = error instanceof Error && error.message.includes('Forbidden') ? 403 : 
+                       error instanceof Error && error.message.includes('Unauthorized') ? 401 : 400;
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: statusCode,
       },
     )
   }

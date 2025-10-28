@@ -144,10 +144,21 @@ const Users = () => {
       });
       fetchUsers();
     } catch (error: any) {
+      console.error('User creation/update error:', error);
+      
+      // Extract the most useful error message
+      let errorMessage = 'An unexpected error occurred';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message
+        description: errorMessage
       });
     } finally {
       setLoading(false);
