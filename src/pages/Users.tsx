@@ -104,10 +104,19 @@ const Users = () => {
         });
 
         if (error) throw error;
+        
+        // Check for function execution errors in the response
+        if (data?.error) {
+          throw new Error(data.error);
+        }
+
+        const successMessage = formData.sendWelcomeEmail 
+          ? `${formData.full_name} has been added and welcome email sent.`
+          : `${formData.full_name} has been added successfully.`;
 
         toast({
           title: "User created",
-          description: `${formData.full_name} has been added successfully.`
+          description: successMessage
         });
       }
 
