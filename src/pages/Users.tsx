@@ -103,11 +103,23 @@ const Users = () => {
           }
         });
 
-        if (error) throw error;
+        console.log('Create user response:', { data, error });
+
+        if (error) {
+          console.error('Edge function error:', error);
+          throw new Error(`Failed to create user: ${error.message}`);
+        }
         
         // Check for function execution errors in the response
         if (data?.error) {
+          console.error('Function returned error:', data.error);
           throw new Error(data.error);
+        }
+
+        // Verify the user was actually created
+        if (!data?.user) {
+          console.error('No user data returned:', data);
+          throw new Error('User creation failed - no user data returned');
         }
 
         const successMessage = formData.sendWelcomeEmail 
