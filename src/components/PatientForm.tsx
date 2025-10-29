@@ -117,7 +117,7 @@ export const PatientForm = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sa_id_number">Omang ID Number</Label>
+              <Label htmlFor="sa_id_number">ID Number</Label>
               <Input
                 id="sa_id_number"
                 name="sa_id_number"

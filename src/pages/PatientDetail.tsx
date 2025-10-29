@@ -226,7 +226,7 @@ const PatientDetail = () => {
 
               {patient.sa_id_number && (
                 <div>
-                  <p className="text-sm text-muted-foreground">SA ID Number</p>
+                  <p className="text-sm text-muted-foreground">ID Number</p>
                   <p className="font-medium">{patient.sa_id_number}</p>
                 </div>
               )}
