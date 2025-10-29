@@ -461,10 +461,17 @@ serve(async (req) => {
     }
     console.log("Upload successful:", uploadData);
 
-    // Get public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("prescriptions").getPublicUrl(`sick-notes/${fileName}`);
+    // Get signed URL (private bucket)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from("prescriptions")
+      .createSignedUrl(`sick-notes/${fileName}`, 60 * 60 * 24 * 365); // 1 year expiry
+
+    if (signedUrlError) {
+      console.error("Signed URL error:", signedUrlError);
+      throw signedUrlError;
+    }
+
+    const publicUrl = signedUrlData.signedUrl;
 
     // Update sick note with PDF URL
     const { error: updateError } = await supabase
