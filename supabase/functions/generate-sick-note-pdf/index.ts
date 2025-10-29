@@ -447,6 +447,7 @@ serve(async (req) => {
     const fileName = `sick_note_${patient?.first_name || "patient"}_${patient?.last_name || "note"}_${new Date().getTime()}.pdf`;
 
     // Upload to Supabase storage
+    console.log("Uploading to storage bucket: prescriptions/sick-notes/", fileName);
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("prescriptions")
       .upload(`sick-notes/${fileName}`, pdfBytes, {
@@ -454,7 +455,11 @@ serve(async (req) => {
         upsert: false,
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error("Upload error details:", JSON.stringify(uploadError));
+      throw uploadError;
+    }
+    console.log("Upload successful:", uploadData);
 
     // Get public URL
     const {
