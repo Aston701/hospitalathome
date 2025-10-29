@@ -502,10 +502,17 @@ Deno.serve(async (req) => {
       throw uploadError;
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabaseClient.storage
+    // Get signed URL (private bucket)
+    const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage
       .from('prescriptions')
-      .getPublicUrl(fileName);
+      .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year expiry
+
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error('Error creating signed URL:', signedUrlError);
+      throw new Error('Failed to create signed URL');
+    }
+
+    const publicUrl = signedUrlData.signedUrl;
 
     // Update diagnostic request with PDF URL
     const { error: updateError } = await supabaseClient
