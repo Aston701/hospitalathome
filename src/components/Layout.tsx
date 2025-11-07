@@ -15,7 +15,8 @@ import {
   X,
   BookOpen,
   CalendarClock,
-  ClipboardCheck
+  ClipboardCheck,
+  BarChart3
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -85,7 +86,10 @@ const Layout = () => {
         { icon: FileText, label: "Prescriptions", path: "/prescriptions" },
         { icon: ClipboardCheck, label: "Checklists", path: "/checklists" },
         ...(profile?.role === "admin" || profile?.role === "control_room" ? [{ icon: CalendarClock, label: "Roster", path: "/roster" }] : []),
-        ...(profile?.role === "admin" ? [{ icon: Settings, label: "Users", path: "/users" }] : []),
+        ...(profile?.role === "admin" ? [
+          { icon: BarChart3, label: "Analytics", path: "/analytics" },
+          { icon: Settings, label: "Users", path: "/users" }
+        ] : []),
         { icon: BookOpen, label: "Training", path: "/training" },
       ];
 
