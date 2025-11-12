@@ -19,6 +19,7 @@ import {
   BarChart3
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Layout = () => {
   const navigate = useNavigate();
@@ -166,14 +167,17 @@ const Layout = () => {
                 </p>
               </div>
             )}
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => navigate("/settings")}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                className="flex-1 justify-start"
+                onClick={() => navigate("/settings")}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+              <ThemeToggle />
+            </div>
             <Button
               variant="ghost"
               className="w-full justify-start text-destructive hover:text-destructive"
