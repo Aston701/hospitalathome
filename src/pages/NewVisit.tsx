@@ -44,6 +44,7 @@ const NewVisit = () => {
     notes: "",
     teams_meeting_url: "",
     useProfileAddress: true,
+    what3words: "",
     alternateAddress: {
       address_line1: "",
       address_line2: "",
@@ -229,11 +230,13 @@ const NewVisit = () => {
           postal_code: selectedPatient.postal_code,
           geo_lat: selectedPatient.geo_lat,
           geo_lng: selectedPatient.geo_lng,
+          what3words: formData.what3words || null,
           source: "profile"
         };
       } else {
         locationSnapshot = {
           ...formData.alternateAddress,
+          what3words: formData.what3words || null,
           source: "alternate"
         };
       }
@@ -536,21 +539,35 @@ const NewVisit = () => {
               </div>
 
               {formData.useProfileAddress ? (
-                <div className="p-4 bg-muted rounded-lg space-y-1">
-                  <p className="font-medium">Patient Address:</p>
-                  <p className="text-sm">{selectedPatient.address_line1 || 'No address line 1'}</p>
-                  {selectedPatient.address_line2 && (
-                    <p className="text-sm">{selectedPatient.address_line2}</p>
-                  )}
-                  <p className="text-sm">
-                    {selectedPatient.suburb && `${selectedPatient.suburb}, `}
-                    {selectedPatient.city || 'No city'}
-                  </p>
-                  <p className="text-sm">
-                    {selectedPatient.province && `${selectedPatient.province}, `}
-                    {selectedPatient.postal_code || 'No postal code'}
-                  </p>
-                </div>
+                <>
+                  <div className="p-4 bg-muted rounded-lg space-y-1">
+                    <p className="font-medium">Patient Address:</p>
+                    <p className="text-sm">{selectedPatient.address_line1 || 'No address line 1'}</p>
+                    {selectedPatient.address_line2 && (
+                      <p className="text-sm">{selectedPatient.address_line2}</p>
+                    )}
+                    <p className="text-sm">
+                      {selectedPatient.suburb && `${selectedPatient.suburb}, `}
+                      {selectedPatient.city || 'No city'}
+                    </p>
+                    <p className="text-sm">
+                      {selectedPatient.province && `${selectedPatient.province}, `}
+                      {selectedPatient.postal_code || 'No postal code'}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="what3words">what3words (optional)</Label>
+                    <Input
+                      id="what3words"
+                      value={formData.what3words}
+                      onChange={(e) => handleChange("what3words", e.target.value)}
+                      placeholder="///word.word.word"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Add a what3words address for precise location
+                    </p>
+                  </div>
+                </>
               ) : (
                 <div className="space-y-4 p-4 border rounded-lg">
                   <p className="text-sm font-medium">Alternate Address</p>
@@ -639,6 +656,19 @@ const NewVisit = () => {
                         })}
                       />
                     </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="what3words">what3words (optional)</Label>
+                    <Input
+                      id="what3words"
+                      value={formData.what3words}
+                      onChange={(e) => handleChange("what3words", e.target.value)}
+                      placeholder="///word.word.word"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Add a what3words address for precise location
+                    </p>
                   </div>
                 </div>
               )}
@@ -926,6 +956,8 @@ const NewVisit = () => {
     : `${formData.alternateAddress.address_line1 || ''} ${formData.alternateAddress.address_line2 || ''} ${formData.alternateAddress.suburb || ''} ${formData.alternateAddress.city || ''} ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim();
   return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : 'Address not available';
 })()}
+${formData.what3words ? `
+*what3words:* https://w3w.co/${formData.what3words.replace(/^\/\/\//, '')}` : ''}
 
 *Appointment Date:* ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
 
@@ -973,6 +1005,8 @@ const NewVisit = () => {
   : `${formData.alternateAddress.address_line1 || ''}${formData.alternateAddress.address_line2 ? ', ' + formData.alternateAddress.address_line2 : ''}, ${formData.alternateAddress.suburb || ''}, ${formData.alternateAddress.city || ''}, ${formData.alternateAddress.province || ''} ${formData.alternateAddress.postal_code || ''}`.trim() || 'Not specified'}
 
 *Google Maps Link:* ${mapsLink}
+${formData.what3words ? `
+*what3words:* https://w3w.co/${formData.what3words.replace(/^\/\/\//, '')}` : ''}
 
 *Appointment Date:* ${formData.scheduled_date ? format(formData.scheduled_date, 'PPP') : 'Not selected'}
 
