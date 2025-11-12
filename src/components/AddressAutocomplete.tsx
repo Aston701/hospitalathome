@@ -67,9 +67,9 @@ export const AddressAutocomplete = ({ onAddressSelect, value, disabled }: Addres
   }, [inputValue]);
 
   useEffect(() => {
-    if (!scriptLoaded || !inputRef.current || autocompleteRef.current || isWhat3Words) return;
+    if (!scriptLoaded || !inputRef.current || autocompleteRef.current) return;
 
-    // Initialize autocomplete
+    // Initialize autocomplete - always initialize, regardless of what3words
     autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
       componentRestrictions: { country: ["za", "bw"] }, // Restrict to South Africa and Botswana
       fields: ["address_components", "formatted_address"],
@@ -115,8 +115,9 @@ export const AddressAutocomplete = ({ onAddressSelect, value, disabled }: Addres
 
       setInputValue(place.formatted_address || "");
       onAddressSelect(components);
+      setIsWhat3Words(false); // Reset what3words state after Google selection
     });
-  }, [scriptLoaded, onAddressSelect, isWhat3Words]);
+  }, [scriptLoaded, onAddressSelect]);
 
   const handleWhat3WordsConvert = async () => {
     if (!inputValue.trim()) {

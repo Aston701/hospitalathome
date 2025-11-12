@@ -103,8 +103,8 @@ const Analytics = () => {
         .select(`
           *,
           patient:patients(*),
-          nurse:nurse_id(id, full_name),
-          doctor:doctor_id(id, full_name),
+          nurse:profiles!nurse_id(id, full_name),
+          doctor:profiles!doctor_id(id, full_name),
           dispatch_events(*)
         `)
         .gte("scheduled_start", monthStart.toISOString())
@@ -116,8 +116,8 @@ const Analytics = () => {
         .select(`
           *,
           patient:patients(*),
-          nurse:nurse_id(id, full_name),
-          doctor:doctor_id(id, full_name),
+          nurse:profiles!nurse_id(id, full_name),
+          doctor:profiles!doctor_id(id, full_name),
           dispatch_events(*)
         `);
 
