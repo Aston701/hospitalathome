@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AddressComponents {
   address_line1: string;
@@ -28,6 +31,8 @@ export const AddressAutocomplete = ({ onAddressSelect, value, disabled }: Addres
   const autocompleteRef = useRef<any>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [inputValue, setInputValue] = useState(value || "");
+  const [isWhat3Words, setIsWhat3Words] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
 
   useEffect(() => {
     // Check if script is already loaded
@@ -56,7 +61,13 @@ export const AddressAutocomplete = ({ onAddressSelect, value, disabled }: Addres
   }, []);
 
   useEffect(() => {
-    if (!scriptLoaded || !inputRef.current || autocompleteRef.current) return;
+    // Check if input looks like a what3words address
+    const w3wPattern = /^\/\/\/[a-z]+\.[a-z]+\.[a-z]+$/i;
+    setIsWhat3Words(w3wPattern.test(inputValue.trim()));
+  }, [inputValue]);
+
+  useEffect(() => {
+    if (!scriptLoaded || !inputRef.current || autocompleteRef.current || isWhat3Words) return;
 
     // Initialize autocomplete
     autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
@@ -105,22 +116,79 @@ export const AddressAutocomplete = ({ onAddressSelect, value, disabled }: Addres
       setInputValue(place.formatted_address || "");
       onAddressSelect(components);
     });
-  }, [scriptLoaded, onAddressSelect]);
+  }, [scriptLoaded, onAddressSelect, isWhat3Words]);
+
+  const handleWhat3WordsConvert = async () => {
+    if (!inputValue.trim()) {
+      toast.error("Please enter a what3words address");
+      return;
+    }
+
+    setIsConverting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('convert-what3words', {
+        body: { what3words: inputValue.trim() }
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      // Update input with formatted address
+      setInputValue(data.formatted_address);
+      
+      // Pass address components to parent
+      onAddressSelect({
+        address_line1: data.address_line1,
+        suburb: data.suburb,
+        city: data.city,
+        province: data.province,
+        postal_code: data.postal_code,
+      });
+
+      toast.success("Address converted successfully!");
+    } catch (error) {
+      console.error('Error converting what3words:', error);
+      toast.error("Failed to convert what3words address");
+    } finally {
+      setIsConverting(false);
+    }
+  };
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="address_autocomplete">Search Address *</Label>
-      <Input
-        id="address_autocomplete"
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        placeholder="Start typing an address..."
-        disabled={disabled || !scriptLoaded}
-      />
-      {!scriptLoaded && (
+      <Label htmlFor="address_autocomplete">Search Address or what3words *</Label>
+      <div className="flex gap-2">
+        <Input
+          id="address_autocomplete"
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Start typing an address or ///what.three.words"
+          disabled={disabled || (!scriptLoaded && !isWhat3Words)}
+          className="flex-1"
+        />
+        {isWhat3Words && (
+          <Button
+            type="button"
+            onClick={handleWhat3WordsConvert}
+            disabled={isConverting || disabled}
+          >
+            {isConverting ? "Converting..." : "Convert"}
+          </Button>
+        )}
+      </div>
+      {!scriptLoaded && !isWhat3Words && (
         <p className="text-xs text-muted-foreground">Loading address search...</p>
+      )}
+      {isWhat3Words && (
+        <p className="text-xs text-muted-foreground">
+          what3words address detected. Click "Convert" to populate address fields.
+        </p>
       )}
     </div>
   );
